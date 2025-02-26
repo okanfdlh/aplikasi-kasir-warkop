@@ -53,11 +53,8 @@ class MenuController extends GetxController {
   var products = <Product>[].obs;
   var isLoading = true.obs;
 
-  @override
-  void onInit() {
-    fetchProducts();
-    super.onInit();
-  }
+
+
 
   void fetchProducts() async {
   try {
@@ -79,4 +76,4 @@ class MenuController extends GetxController {
     isLoading(false);
   }
 }
-}
+
