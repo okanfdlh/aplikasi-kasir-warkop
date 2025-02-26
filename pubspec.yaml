@@ -39,6 +39,7 @@ dependencies:
   http: ^0.13.6
   intl: ^0.20.2
   mysql1: ^0.19.2
+  dio: ^5.8.0+1
 
 dev_dependencies:
   flutter_test:

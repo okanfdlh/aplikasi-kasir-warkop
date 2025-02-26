@@ -19,7 +19,7 @@ class MenuController extends GetxController {
   void fetchProducts() async {
     try {
       isLoading(true);
-      var response = await http.get(Uri.parse("http://192.168.1.10:8000/api/products"));
+      var response = await http.get(Uri.parse("http://192.168.1.12:8000/api/products"));
 
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
