@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+=======
+import 'package:mysql1/mysql1.dart';
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
 
 class TambahMenuPage extends StatefulWidget {
   @override
@@ -10,6 +14,7 @@ class TambahMenuPage extends StatefulWidget {
 class _TambahMenuPageState extends State<TambahMenuPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
+<<<<<<< HEAD
   final TextEditingController imageController = TextEditingController();
 
   List<String> categories = [];
@@ -48,10 +53,57 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
       print("Error mengambil kategori: $e");
       setState(() {
         isCategoryLoading = false;
+=======
+  final TextEditingController categoryController = TextEditingController();
+  final TextEditingController imageController = TextEditingController();
+  bool isLoading = false;
+
+  Future<void> tambahProduk() async {
+    if (nameController.text.isEmpty ||
+        priceController.text.isEmpty ||
+        categoryController.text.isEmpty ||
+        imageController.text.isEmpty) {
+      _showSnackbar("Semua kolom harus diisi!", Colors.red);
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Konfigurasi koneksi MySQL
+      final settings = ConnectionSettings(
+        host: '192.168.1.10', // Gunakan IP lokal jika menggunakan emulator
+        port: 3306, // Port default MySQL
+        user: 'root', // Sesuaikan dengan Laragon
+        password: '', // Jika MySQL tidak memiliki password
+        db: 'rumahseduh', // Ganti dengan nama database kamu
+      );
+
+      final conn = await MySqlConnection.connect(settings);
+
+      // Query untuk menambahkan produk
+      await conn.query(
+        'INSERT INTO products (name, price, category, image) VALUES (?, ?, ?, ?)',
+        [nameController.text, priceController.text, categoryController.text, imageController.text],
+      );
+
+      await conn.close();
+
+      _showSnackbar("Produk berhasil ditambahkan!", Colors.green);
+      _clearFields();
+    } catch (e) {
+      _showSnackbar("Gagal menambahkan produk: $e", Colors.red);
+    } finally {
+      setState(() {
+        isLoading = false;
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
       });
     }
   }
 
+<<<<<<< HEAD
   Future<void> tambahProduk() async {
   if (nameController.text.isEmpty ||
       priceController.text.isEmpty ||
@@ -96,6 +148,8 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
 }
 
 
+=======
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
   void _showSnackbar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: color),
@@ -105,10 +159,15 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
   void _clearFields() {
     nameController.clear();
     priceController.clear();
+<<<<<<< HEAD
     imageController.clear();
     if (categories.isNotEmpty) {
       selectedCategory = categories.first;
     }
+=======
+    categoryController.clear();
+    imageController.clear();
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
   }
 
   @override
@@ -118,12 +177,20 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
+<<<<<<< HEAD
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTextField(nameController, "Nama Produk (Contoh: Kopi Susu)", Icons.fastfood),
             _buildTextField(priceController, "Harga (Contoh: 15000)", Icons.attach_money, isNumber: true),
             _buildCategoryDropdown(),
             _buildTextField(imageController, "URL Gambar (Contoh: https://example.com/kopi.jpg)", Icons.image),
+=======
+          children: [
+            _buildTextField(nameController, "Nama Produk", Icons.fastfood),
+            _buildTextField(priceController, "Harga", Icons.attach_money, isNumber: true),
+            _buildTextField(categoryController, "Kategori", Icons.category),
+            _buildTextField(imageController, "URL Gambar", Icons.image),
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: isLoading ? null : tambahProduk,
@@ -154,6 +221,7 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
+<<<<<<< HEAD
     );
   }
 
@@ -183,6 +251,8 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
+=======
+>>>>>>> d54bf4a639226e3af3905ea6316e9a4401337744
     );
   }
 }
