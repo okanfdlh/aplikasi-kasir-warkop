@@ -2,10 +2,11 @@ import 'package:dio/dio.dart';
 
 class ApiService {
   final Dio dio = Dio(BaseOptions(
-    baseUrl: 'http://192.168.1.12:8000',
-    followRedirects: true,
-    validateStatus: (status) => true,
-  ));
+  baseUrl: 'http://192.168.1.12:8000',
+  connectTimeout: Duration(seconds: 30),
+  receiveTimeout: Duration(seconds: 30),
+));
+
 
   String? xsrfToken;
 
@@ -32,7 +33,7 @@ class ApiService {
     }
   }
 
-  // Tambah Produk
+  // Tambah Produk ke http://192.168.1.10:8000/api/products
   Future<bool> tambahProduk({
     required String name,
     required String image,
@@ -41,7 +42,7 @@ class ApiService {
   }) async {
     try {
       Response response = await dio.post(
-        '/api/menu/tambah',
+        '/api/products', // Endpoint baru untuk produk
         options: Options(
           headers: {
             'X-XSRF-TOKEN': xsrfToken, // Kirim token CSRF
