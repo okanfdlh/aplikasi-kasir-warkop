@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
@@ -13,15 +14,123 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.green, // Warna utama aplikasi
-        fontFamily: 'Roboto', // Font modern
+        primarySwatch: Colors.green,
+        fontFamily: 'Roboto',
       ),
-      home: HomePage(),
+      home: AuthCheck(), // Cek apakah user sudah login
     );
   }
 }
 
+// 🔑 Cek apakah user sudah login
+class AuthCheck extends StatefulWidget {
+  @override
+  _AuthCheckState createState() => _AuthCheckState();
+}
+
+class _AuthCheckState extends State<AuthCheck> {
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool loggedIn = prefs.getBool("isLoggedIn") ?? false;
+    setState(() {
+      _isLoggedIn = loggedIn;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoggedIn ? HomePage() : LoginPage();
+  }
+}
+
+// 🔑 Halaman Login
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool("isLoggedIn", true);
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 30),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Login",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                ),
+                SizedBox(height: 20),
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: "Email",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => value!.isEmpty ? "Email tidak boleh kosong" : null,
+                ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => value!.isEmpty ? "Password tidak boleh kosong" : null,
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _login,
+                  child: Text("Login", style: TextStyle(fontSize: 18)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade800,
+                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 🏠 Halaman Utama setelah login
 class HomePage extends StatelessWidget {
+  Future<void> _logout(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("isLoggedIn", false);
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,11 +148,7 @@ class HomePage extends StatelessWidget {
           children: [
             Text(
               "Kasir Rumah Seduh",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             SizedBox(height: 30),
 
@@ -67,6 +172,19 @@ class HomePage extends StatelessWidget {
               context: context,
               page: TambahMenuPage(),
             ),
+
+            SizedBox(height: 20),
+
+            ElevatedButton.icon(
+              onPressed: () => _logout(context),
+              icon: Icon(Icons.logout, color: Colors.white),
+              label: Text("Logout", style: TextStyle(color: Colors.white, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ],
         ),
       ),
@@ -81,10 +199,7 @@ class HomePage extends StatelessWidget {
           Navigator.push(context, MaterialPageRoute(builder: (context) => page));
         },
         icon: Icon(icon, size: 28, color: Colors.white),
-        label: Text(
-          label,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        label: Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green.shade800,
           padding: EdgeInsets.symmetric(vertical: 14),
