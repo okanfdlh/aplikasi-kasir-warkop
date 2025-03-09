@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
@@ -39,9 +42,9 @@ class _AuthCheckState extends State<AuthCheck> {
 
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool loggedIn = prefs.getBool("isLoggedIn") ?? false;
+    String? token = prefs.getString("token");
     setState(() {
-      _isLoggedIn = loggedIn;
+      _isLoggedIn = token != null;
     });
   }
 
@@ -61,12 +64,33 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    final response = await http.post(
+      Uri.parse('http://192.168.1.10:8000/api/login'), // Ganti dengan URL API Laravel
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': emailController.text,
+        'password': passwordController.text,
+      }),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool("isLoggedIn", true);
+      await prefs.setString("token", data['token']); // Simpan token login
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login gagal, periksa kembali email dan password!")),
+      );
     }
   }
 
@@ -106,8 +130,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _login,
-                  child: Text("Login", style: TextStyle(fontSize: 18)),
+                  onPressed: _isLoading ? null : _login,
+                  child: _isLoading ? CircularProgressIndicator(color: Colors.white) : Text("Login", style: TextStyle(fontSize: 18)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade800,
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
@@ -127,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
 class HomePage extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool("isLoggedIn", false);
+    await prefs.remove("token"); // Hapus token untuk logout
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
   }
 
