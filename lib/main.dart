@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final response = await http.post(
-        Uri.parse('http://192.168.1.10:8000/api/login'),
+        Uri.parse('http://192.168.1.8:8000/api/login'),
         body: {
           'email': emailController.text,
           'password': passwordController.text,
