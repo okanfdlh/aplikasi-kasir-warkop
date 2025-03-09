@@ -8,6 +8,7 @@ import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
 
 void main() {
+  
   runApp(MyApp());
 }
 
