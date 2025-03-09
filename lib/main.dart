@@ -183,7 +183,7 @@ class HomePage extends StatelessWidget {
               icon: Icons.receipt_long,
               label: "Transaksi",
               context: context,
-              page: TransaksiPage(),
+              page: OrdersPage(),
             ),
 
             _buildMenuButton(

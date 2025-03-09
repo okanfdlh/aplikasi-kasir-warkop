@@ -17,7 +17,7 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController imageController = TextEditingController();
 
-  List<String> categories = ['coffee', 'nCoffee', 'makanan', 'cemilan'];
+  List<String> categories = ['coffee', 'non_coffee', 'makanan', 'cemilan'];
   String? selectedCategory;
   bool isLoading = false;
 
