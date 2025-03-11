@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() {
-  
+  HttpOverrides.global = MyHttpOverrides();
   runApp(MyApp());
 }
 
@@ -69,12 +77,21 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       final response = await http.post(
-        Uri.parse('http://192.168.1.8:8000/api/login'),
-        body: {
-          'email': emailController.text,
-          'password': passwordController.text,
-        },
-      );
+  Uri.parse('https://rumahseduh.wuaze.com/api/login'),
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'FlutterApp/1.0',
+  },
+  body: {
+    'email': emailController.text,
+    'password': passwordController.text,
+  },
+);
+
+
+
+print(response.body); // Tambahkan ini untuk melihat respons sebenarnya
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
