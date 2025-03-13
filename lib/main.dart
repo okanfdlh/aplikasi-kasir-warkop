@@ -15,34 +15,6 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-class AuthCheck extends StatefulWidget {
-  @override
-  _AuthCheckState createState() => _AuthCheckState();
-}
-
-class _AuthCheckState extends State<AuthCheck> {
-  bool _isLoggedIn = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString("token");
-    setState(() {
-      _isLoggedIn = token != null;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _isLoggedIn ? HomePage() : LoginPage();
-  }
-}
-
 void main() {
   HttpOverrides.global = MyHttpOverrides();
   runApp(MyApp());
@@ -62,7 +34,41 @@ class MyApp extends StatelessWidget {
         '/': (context) => AuthCheck(),  
         '/login': (context) => LoginPage(),
         '/home': (context) => HomePage(),
+        '/menu': (context) => MenuPage(),
+        '/transaksi': (context) => OrdersPage(),
+        '/laporan_pendapatan': (context) => TambahMenuPage(),
+        '/laporan_pengeluaran': (context) => TambahMenuPage(),
       },
+    );
+  }
+}
+
+class AuthCheck extends StatefulWidget {
+  @override
+  _AuthCheckState createState() => _AuthCheckState();
+}
+
+class _AuthCheckState extends State<AuthCheck> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+    if (token != null) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
@@ -82,13 +88,13 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    final String email = emailController.text;
-    final String password = passwordController.text;
-
     final response = await http.post(
       Uri.parse('https://seduh.dev-web2.babelprov.go.id/api/login'),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email, "password": password}),
+      body: jsonEncode({
+        "email": emailController.text,
+        "password": passwordController.text,
+      }),
     );
 
     if (response.statusCode == 200) {
@@ -119,7 +125,11 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(height: 10),
                 Text(
                   "Login",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade800,
+                  ),
                 ),
                 SizedBox(height: 20),
                 _buildTextField(emailController, "Email", Icons.email, false),
@@ -181,7 +191,7 @@ class HomePage extends StatelessWidget {
         title: Text('Kasir', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.white),
+            icon: Icon(Icons.logout, color: Colors.black),
             onPressed: () => _logout(context),
           ),
         ],
@@ -191,7 +201,7 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildInfoCard(), // Panggil metode yang sekarang ada dalam kelas
+            _buildInfoCard(),
             SizedBox(height: 20),
             _buildStoreCard(),
             SizedBox(height: 30),
@@ -200,10 +210,10 @@ class HomePage extends StatelessWidget {
               runSpacing: 20,
               alignment: WrapAlignment.center,
               children: [
-                _buildCustomButton(context, 'Daftar Menu', Icons.menu_book),
-                _buildCustomButton(context, 'Orderan', Icons.shopping_cart),
-                _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money),
-                _buildCustomButton(context, 'Laporan Pengeluaran', Icons.money_off),
+                _buildCustomButton(context, 'Daftar Menu', Icons.menu_book, '/menu'),
+                _buildCustomButton(context, 'Orderan', Icons.shopping_cart, '/transaksi'),
+                _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan'),
+                _buildCustomButton(context, 'Laporan Pengeluaran', Icons.money_off, '/laporan_pengeluaran'),
               ],
             ),
           ],
@@ -216,7 +226,7 @@ class HomePage extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blueAccent,
+        color: Colors.green.shade800,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -234,6 +244,20 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+  Widget _buildCustomButton(BuildContext context, String title, IconData icon, String route) {
+    return ElevatedButton.icon(
+      onPressed: () => Navigator.pushNamed(context, route),
+      icon: Icon(icon, color: Colors.white),
+      label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+        backgroundColor: Colors.green.shade800,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 5,
+      ),
+    );
+  }
+}
 
   Widget _buildStoreCard() {
     return Card(
@@ -247,20 +271,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomButton(BuildContext context, String title, IconData icon) {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, color: Colors.white),
-      label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-        backgroundColor: Colors.green.shade800,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 5,
-      ),
-    );
-  }
-}
 
 Future<void> _logout(BuildContext context) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
