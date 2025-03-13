@@ -19,7 +19,7 @@ class MenuController extends GetxController {
   void fetchProducts() async {
     try {
       isLoading(true);
-      var response = await http.get(Uri.parse("https://192.168.1.8:8000/api/products"));
+      var response = await http.get(Uri.parse("https://seduh.dev-web2.babelprov.go.id/api/products"));
 
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
