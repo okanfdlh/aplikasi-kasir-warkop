@@ -36,8 +36,6 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         '/menu': (context) => MenuPage(),
         '/transaksi': (context) => OrdersPage(),
-        '/laporan_pendapatan': (context) => TambahMenuPage(),
-        '/laporan_pengeluaran': (context) => TambahMenuPage(),
       },
     );
   }
@@ -214,6 +212,8 @@ class HomePage extends StatelessWidget {
                 _buildCustomButton(context, 'Orderan', Icons.shopping_cart, '/transaksi'),
                 _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan'),
                 _buildCustomButton(context, 'Laporan Pengeluaran', Icons.money_off, '/laporan_pengeluaran'),
+                _buildCustomButtonWithToken(context, 'Tambah Menu', Icons.add),
+
               ],
             ),
           ],
@@ -244,6 +244,29 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+  _buildCustomButtonWithToken(BuildContext context, String title, IconData icon) {
+  return ElevatedButton.icon(
+    onPressed: () async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token') ?? '';
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TambahMenuPage(bearerToken: token),
+        ),
+      );
+    },
+    icon: Icon(icon, color: Colors.white),
+    label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
+    style: ElevatedButton.styleFrom(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+      backgroundColor: Colors.green.shade800,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 5,
+    ),
+  );
+}
+
   Widget _buildCustomButton(BuildContext context, String title, IconData icon, String route) {
     return ElevatedButton.icon(
       onPressed: () => Navigator.pushNamed(context, route),

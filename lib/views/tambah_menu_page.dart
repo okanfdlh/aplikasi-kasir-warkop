@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
+import '../services/api_service.dart'; // Pastikan path benar
 
 class TambahMenuPage extends StatefulWidget {
+  final String bearerToken;
+  const TambahMenuPage({Key? key, required this.bearerToken}) : super(key: key);
+  
+
   @override
   _TambahMenuPageState createState() => _TambahMenuPageState();
 }
 
 class _TambahMenuPageState extends State<TambahMenuPage> {
-  final Dio dio = Dio(BaseOptions(
-    baseUrl: 'http://192.168.1.10:8000',
-    connectTimeout: Duration(seconds: 10),
-    receiveTimeout: Duration(seconds: 10),
-  ));
-
+  late final ApiService apiService;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController imageController = TextEditingController();
@@ -24,64 +23,55 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
   @override
   void initState() {
     super.initState();
+    apiService = ApiService();
+    apiService.setBearerToken(widget.bearerToken);
     selectedCategory = categories.first;
   }
 
   Future<void> tambahProduk() async {
-    if (nameController.text.isEmpty ||
-        priceController.text.isEmpty ||
-        imageController.text.isEmpty ||
-        selectedCategory == null) {
-      _showSnackbar("Semua kolom harus diisi!", Colors.red);
-      return;
-    }
+  if (nameController.text.isEmpty ||
+      priceController.text.isEmpty ||
+      imageController.text.isEmpty ||
+      selectedCategory == null) {
+    _showSnackbar("Semua kolom harus diisi!", Colors.red);
+    return;
+  }
 
-    setState(() {
-      isLoading = true;
-    });
+  setState(() {
+    isLoading = true;
+  });
 
-    try {
-      Response response = await dio.post(
-        '/api/products',
-        options: Options(
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-        data: {
-          "name": nameController.text,
-          "image": imageController.text,
-          "price": double.parse(priceController.text),
-          "category": selectedCategory,
-        },
-      );
+  // Convert price string ke double
+  String priceInput = priceController.text;
+  double priceDouble = double.tryParse(priceInput.replaceAll('.', '').replaceAll(',', '.')) ?? 0.0;
 
-      debugPrint("Response Code: ${response.statusCode}");
-      debugPrint("Response Data: ${response.data}");
-
-      if (response.statusCode == 201) {
-        _showSnackbar("Produk berhasil ditambahkan!", Colors.green);
-        _clearFields();
-      } else {
-        _showSnackbar("Gagal menambahkan produk!", Colors.red);
-      }
-    } catch (e) {
-      if (e is DioException) {
-        debugPrint("DioError Type: ${e.type}");
-        debugPrint("DioError Message: ${e.message}");
-        debugPrint("DioError Response: ${e.response}");
-      } else {
-        debugPrint("Error: $e");
-      }
-
-      _showSnackbar("Terjadi kesalahan: ${e.toString()}", Colors.red);
-    }
-
+  if (priceDouble == 0.0) {
+    _showSnackbar("Harga tidak valid!", Colors.red);
     setState(() {
       isLoading = false;
     });
+    return;
   }
+
+  bool success = await apiService.tambahProduk(
+    name: nameController.text,
+    image: imageController.text,
+    price: priceDouble,
+    category: selectedCategory!,
+  );
+
+  if (success) {
+    _showSnackbar("Produk berhasil ditambahkan!", Colors.green);
+    _clearFields();
+  } else {
+    _showSnackbar("Gagal menambahkan produk!", Colors.red);
+  }
+
+  setState(() {
+    isLoading = false;
+  });
+}
+
 
   void _showSnackbar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
