@@ -21,7 +21,7 @@ class Product {
       id: json['id'],
       name: json['name'],
       image: json['image'],
-      price: double.parse(json['price']), // Pastikan harga dalam format double
+      price: double.tryParse(json['price'].toString()) ?? 0.0, // Default to 0.0 if parsing fails
       category: json['category'],
     );
   }

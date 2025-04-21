@@ -2,12 +2,13 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/product_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MenuController extends GetxController {
   var products = <Product>[].obs;
   var filteredProducts = <Product>[].obs;
   var categories = <String>[].obs;
-  var selectedCategory = "".obs;
+  var selectedCategory = "Semua".obs;
   var isLoading = true.obs;
 
   @override
@@ -19,18 +20,28 @@ class MenuController extends GetxController {
   void fetchProducts() async {
     try {
       isLoading(true);
-      var response = await http.get(Uri.parse("http://192.168.1.10:8000/api/products"));
+      var response = await http.get(Uri.parse("https://seduh.dev-web2.babelprov.go.id/api/products"));
+
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
-        products.value = data.map<Product>((item) => Product.fromJson(item)).toList();
-        
-        // Ambil kategori unik dari produk
-        categories.value = ["Semua"] + products.map((p) => p.category).toSet().toList();
 
-        // Default: tampilkan semua produk
-        selectedCategory.value = "Semua";
-        filterProducts();
+        // Pastikan data berbentuk List
+        if (data is List) {
+          products.value = data.map<Product>((item) => Product.fromJson(item)).toList();
+          print("Data berhasil dimuat: ${products.length} item.");
+
+          // Ambil kategori unik dari produk
+          categories.value = ["Semua"] + products.map((p) => p.category).toSet().toList();
+
+          // Default tampilkan semua produk
+          selectedCategory.value = "Semua";
+          filterProducts();
+        } else {
+          print("Data yang diterima bukan List");
+        }
       } else {
         print("Gagal mengambil data. Status Code: ${response.statusCode}");
       }
@@ -45,35 +56,61 @@ class MenuController extends GetxController {
     if (selectedCategory.value == "Semua") {
       filteredProducts.assignAll(products);
     } else {
-      filteredProducts.assignAll(products.where((p) => p.category == selectedCategory.value).toList());
+      filteredProducts.assignAll(
+        products.where((p) => p.category == selectedCategory.value).toList(),
+      );
     }
   }
-}
 
-  var products = <Product>[].obs;
-  var isLoading = true.obs;
+  // ✅ Fungsi searchProducts
+  void searchProducts(String query) {
+    if (query.isEmpty) {
+      filterProducts(); // tampilkan berdasarkan kategori jika search kosong
+    } else {
+      filteredProducts.assignAll(
+        products.where((product) =>
+            product.name.toLowerCase().contains(query.toLowerCase()) ||
+            product.category.toLowerCase().contains(query.toLowerCase())
+        ).toList(),
+      );
+    }
+  }
 
-
-
-
-  void fetchProducts() async {
+  // ✅ Fungsi deleteProduct
+  void deleteProduct(int id) async {
   try {
     isLoading(true);
-    var response = await http.get(Uri.parse("http://192.168.1.10:8000/api/products"));
-    print("Response Status Code: ${response.statusCode}");
-    print("Response Body: ${response.body}");
+
+    // Ambil token dari SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      print("Token tidak ditemukan. User mungkin belum login.");
+      return;
+    }
+
+    var response = await http.delete(
+      Uri.parse("https://seduh.dev-web2.babelprov.go.id/api/products/$id"),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body);
-      products.value = data.map<Product>((item) => Product.fromJson(item)).toList();
-      print("Data berhasil dimuat: ${products.length} item.");
+      products.removeWhere((product) => product.id == id);
+      filteredProducts.removeWhere((product) => product.id == id);
+      print("Produk berhasil dihapus");
     } else {
-      print("Gagal mengambil data. Status Code: ${response.statusCode}");
+      print("Gagal menghapus produk. Status Code: ${response.statusCode}");
+      print("Body: ${response.body}");
     }
   } catch (e) {
-    print("Error fetching products: $e");
+    print("Error deleting product: $e");
   } finally {
     isLoading(false);
   }
 }
 
+}

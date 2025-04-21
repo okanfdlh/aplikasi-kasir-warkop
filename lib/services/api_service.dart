@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:path/path.dart';
 
 class ApiService {
   final Dio dio = Dio(BaseOptions(
@@ -14,30 +16,29 @@ class ApiService {
     dio.options.headers["Authorization"] = "Bearer $token";
   }
 
-    Future<bool> tambahProduk({
+  Future<bool> tambahProduk({
     required String name,
     required String category,
     required double price,
-    required String image,
+    required File imageFile,
   }) async {
     try {
-      // ✅ Cetak URL dan token untuk debugging
-      print('URL: ${dio.options.baseUrl}/products');
-      print('Token: $bearerToken');
-      
+      String fileName = basename(imageFile.path);
+      FormData formData = FormData.fromMap({
+        "name": name,
+        "category": category,
+        "price": price,
+        "image": await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      });
+
       final response = await dio.post(
         '/products',
-        data: {
-          "name": name,
-          "category": category,
-          "price": price,
-          "image": image,
-        },
+        data: formData,
         options: Options(
           headers: {
             "Authorization": "Bearer $bearerToken",
             "Accept": "application/json",
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         ),
       );

@@ -4,11 +4,45 @@ import 'package:intl/intl.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  ProductCard({required this.product});
+  ProductCard({
+    required this.product,
+    this.onEdit,
+    this.onDelete,
+  });
 
   String formatRupiah(double price) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(price);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+        .format(price);
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, int productId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Konfirmasi Penghapusan"),
+          content: const Text("Apakah Anda yakin ingin menghapus produk ini?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Menutup dialog
+              },
+              child: const Text("Batal"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (onDelete != null) onDelete!(); // Call onDelete callback
+                Navigator.of(context).pop(); // Menutup dialog setelah hapus produk
+              },
+              child: const Text("Hapus"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -22,15 +56,43 @@ class ProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-              child: Image.network(
-                product.image,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-              ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Image.network(
+                    product.image.startsWith('http')
+                        ? product.image
+                        : 'https://seduh.dev-web2.babelprov.go.id/storage/${product.image}',
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 5,
+                  top: 5,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.white),
+                        onPressed: onEdit,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () {
+                          // Menampilkan dialog konfirmasi sebelum menghapus produk
+                          _showDeleteConfirmationDialog(context, product.id); 
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -38,25 +100,18 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product.name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(product.name,
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
-                Text(formatRupiah(product.price), style: TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(formatRupiah(product.price),
+                    style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
-                Text("Kategori: ${product.category}", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Tambahkan logika pemesanan di sini
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text("Pesan Sekarang", style: TextStyle(color: Colors.white)),
-                  ),
-                ),
+                Text("Kategori: ${product.category}",
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
