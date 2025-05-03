@@ -42,11 +42,17 @@ class ApiService {
           },
         ),
       );
+      print('Response Status: ${response.statusCode}');
       print(response.data);
       return response.statusCode == 201;
     } catch (e) {
-      print("Tambah Produk Error: $e");
-      return false;
-    }
+  if (e is DioError) {
+    print("Dio Error: ${e.response?.data ?? e.message}");
+  } else {
+    print("General Error: $e");
+  }
+  return false;
+}
   }
 }
+

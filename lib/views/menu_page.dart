@@ -6,6 +6,9 @@ import '../widgets/product_card.dart';
 import 'tambah_menu_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_menu_page.dart';
+import '../controllers/cart_controller.dart';
+import 'cart_page.dart';
+
 
 
 class MenuPage extends StatefulWidget {
@@ -23,38 +26,11 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!hasRedirected) {
-      hasRedirected = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToTambahMenuPage();
-      });
-    }
+  void initState() {
+    super.initState();
+    // Fetch products every time the page is opened
+    menuController.fetchProducts();
   }
-
- Future<void> _navigateToTambahMenuPage() async {
-  // Ambil token dari SharedPreferences
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? token = prefs.getString('token');  // Pastikan token disimpan dengan kunci 'token'
-
-  if (token != null) {
-    // Redirect ke halaman TambahMenuPage dengan token yang valid
-    var result = await Get.off(() => TambahMenuPage(bearerToken: 'Bearer $token'));
-
-    // Automatically reload the list after returning from TambahMenuPage
-    if (result != null) {
-      menuController.fetchProducts();  // Call the method to fetch the updated product list
-    }
-  } else {
-    // Jika token tidak ada, bisa menunjukkan pesan error atau login kembali
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Token tidak ditemukan, silakan login kembali.")),
-    );
-  }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +39,12 @@ class _MenuPageState extends State<MenuPage> {
         title: const Text("Daftar Menu"),
         backgroundColor: Colors.green,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Get.to(() => CartPage());
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () async {
@@ -94,47 +76,57 @@ class _MenuPageState extends State<MenuPage> {
                 )),
           ),
           Expanded(
-          child: Obx(() {
-            if (menuController.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            child: Obx(() {
+              if (menuController.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            return GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: menuController.filteredProducts.length,
-              itemBuilder: (context, index) {
-                return ProductCard(
-                  product: menuController.filteredProducts[index],
-                  onEdit: () {
-                    // Pass the product to EditMenuPage correctly
-                    Get.to(EditMenuPage(product: menuController.filteredProducts[index]));
-                  },
-                  onDelete: () {
-                    menuController.deleteProduct(menuController.filteredProducts[index].id);
-                  },
-                );
-              },
-            );
-          }),
-        ),
+              return GridView.builder(
+                padding: const EdgeInsets.all(10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: menuController.filteredProducts.length,
+                itemBuilder: (context, index) {
+                  return ProductCard(
+                    product: menuController.filteredProducts[index],
+                    onEdit: () {
+                      print("EDIT PRODUCT: ${menuController.filteredProducts[index].name}");
+                      Get.to(EditMenuPage(product: menuController.filteredProducts[index]));
+                    },
+                    onDelete: () {
+                      menuController.deleteProduct(menuController.filteredProducts[index].id);
+                    },
+                    onPesan: () {
+                      final CartController cartController = Get.put(CartController());
+                      cartController.addToCart(menuController.filteredProducts[index]);
 
+                      // Menampilkan pop-up notifikasi berhasil
+                      Get.snackbar(
+                        "Berhasil", 
+                        "${menuController.filteredProducts[index].name} ditambahkan ke keranjang",
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.green,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 2),
+                        margin: const EdgeInsets.all(10),
+                      );
+                    },
+
+                  );
+                },
+              );
+            }),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _navigateToTambahMenuPage();  // Navigasi dengan token yang valid
-        },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.add),
       ),
     );
   }
+
+
 
   void _showDeleteConfirmationDialog(BuildContext context, int productId) {
     showDialog(

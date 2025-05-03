@@ -4,7 +4,7 @@ class Product {
   final int id;
   final String name;
   final String image;
-  final double price;
+  final double price; // Make sure price is a double
   final String category;
 
   Product({
@@ -15,20 +15,25 @@ class Product {
     required this.category,
   });
 
-  // Factory untuk parsing JSON ke objek Product
+  // Parsing JSON data to Product
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
       name: json['name'],
       image: json['image'],
-      price: double.tryParse(json['price'].toString()) ?? 0.0, // Default to 0.0 if parsing fails
+      price: double.tryParse(json['price']) ?? 0.0, // Convert string to double safely
       category: json['category'],
     );
   }
 
-  // Method untuk mengubah List JSON menjadi List<Product>
-  static List<Product> fromJsonList(String jsonStr) {
-    final List<dynamic> data = json.decode(jsonStr);
-    return data.map((item) => Product.fromJson(item)).toList();
+  // Converting Product to JSON format (optional, in case you need to send data back to API)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'image': image,
+      'price': price.toString(), // Convert price back to string when sending to API
+      'category': category,
+    };
   }
 }

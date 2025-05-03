@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
+import 'package:get/get.dart';
+
 
 class TambahMenuPage extends StatefulWidget {
   final String bearerToken;
@@ -9,6 +11,17 @@ class TambahMenuPage extends StatefulWidget {
 
   @override
   _TambahMenuPageState createState() => _TambahMenuPageState();
+  Widget build(BuildContext context) {
+    // Retrieve the token using Get.arguments
+    final String bearerToken = Get.arguments;
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Tambah Menu")),
+      body: Center(
+        child: Text('Token: $bearerToken'), // For example, display the token
+      ),
+    );
+  }
 }
 
 class _TambahMenuPageState extends State<TambahMenuPage> {
@@ -75,6 +88,7 @@ class _TambahMenuPageState extends State<TambahMenuPage> {
       category: selectedCategory!,
       imageFile: pickedImage!,
     );
+print("Bearer Token: ${widget.bearerToken}");
 
     // Success or failure message
     if (success) {

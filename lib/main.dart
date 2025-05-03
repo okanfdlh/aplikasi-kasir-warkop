@@ -6,7 +6,8 @@ import 'dart:io';
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
-
+import 'package:coba1/views/pendapatan_page.dart';
+import 'package:get/get.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -24,23 +25,31 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.green,
         fontFamily: 'Roboto',
       ),
       initialRoute: '/',
-      routes: {
-        '/': (context) => AuthCheck(),  
-        '/login': (context) => LoginPage(),
-        '/home': (context) => HomePage(),
-        '/menu': (context) => MenuPage(),
-        '/transaksi': (context) => OrdersPage(),
-      },
+      getPages: [
+        GetPage(name: '/', page: () => AuthCheck()),
+        GetPage(name: '/login', page: () => LoginPage()),
+        GetPage(name: '/home', page: () => HomePage()),
+        GetPage(name: '/menu', page: () => MenuPage()),
+        GetPage(name: '/transaksi', page: () => OrdersPage()),
+        GetPage(name: '/laporan_pendapatan', page: () => PendapatanPage()),
+        GetPage(
+          name: '/TambahMenuPage',
+          page: () => TambahMenuPage(
+            bearerToken: Get.arguments, // Ambil token dari arguments
+          ),
+        ),
+      ],
     );
   }
 }
+
 
 class AuthCheck extends StatefulWidget {
   @override
@@ -211,7 +220,7 @@ class HomePage extends StatelessWidget {
                 _buildCustomButton(context, 'Daftar Menu', Icons.menu_book, '/menu'),
                 _buildCustomButton(context, 'Orderan', Icons.shopping_cart, '/transaksi'),
                 _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan'),
-                _buildCustomButton(context, 'Laporan Pengeluaran', Icons.money_off, '/laporan_pengeluaran'),
+                // _buildCustomButton(context, 'Tambah Orderan', Icons.money_off, '/tambah_order'),
                 _buildCustomButtonWithToken(context, 'Tambah Menu', Icons.add),
 
               ],
@@ -244,32 +253,35 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+  
   _buildCustomButtonWithToken(BuildContext context, String title, IconData icon) {
-  return ElevatedButton.icon(
-    onPressed: () async {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token') ?? '';
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TambahMenuPage(bearerToken: token),
-        ),
-      );
-    },
-    icon: Icon(icon, color: Colors.white),
-    label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
-    style: ElevatedButton.styleFrom(
-      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-      backgroundColor: Colors.green.shade800,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 5,
-    ),
-  );
-}
+    return ElevatedButton.icon(
+      onPressed: () async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String? token = prefs.getString('token') ?? '';
+        if (token.isNotEmpty) {
+          Get.toNamed('/TambahMenuPage', arguments: token);  // Pass token as an argument
+        } else {
+          // Handle the case where the token is not available
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Token tidak ditemukan, harap login terlebih dahulu')),
+          );
+        }
+      },
+      icon: Icon(icon, color: Colors.white),
+      label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+        backgroundColor: Colors.green.shade800,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 5,
+      ),
+    );
+  }
 
   Widget _buildCustomButton(BuildContext context, String title, IconData icon, String route) {
     return ElevatedButton.icon(
-      onPressed: () => Navigator.pushNamed(context, route),
+      onPressed: () => Get.toNamed(route),  // Gunakan Get.toNamed
       icon: Icon(icon, color: Colors.white),
       label: Text(title, style: TextStyle(fontSize: 16, color: Colors.white)),
       style: ElevatedButton.styleFrom(
