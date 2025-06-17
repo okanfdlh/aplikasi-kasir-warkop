@@ -7,6 +7,7 @@ import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
 import 'package:coba1/views/pendapatan_page.dart';
+import 'package:coba1/views/pembayaran_page.dart';
 import 'package:get/get.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/home', page: () => HomePage()),
         GetPage(name: '/menu', page: () => MenuPage()),
         GetPage(name: '/transaksi', page: () => OrdersPage()),
+        GetPage(name: '/pembayaran', page: () => PembayaranPage()),
         GetPage(name: '/laporan_pendapatan', page: () => PendapatanPage()),
         GetPage(
           name: '/TambahMenuPage',

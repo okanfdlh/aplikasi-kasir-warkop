@@ -27,6 +27,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    Get.put(CartController());
     menuController.fetchProducts();
 
     _animationController = AnimationController(

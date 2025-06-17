@@ -22,7 +22,6 @@ class _CartPageState extends State<CartPage> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi controller saat cart dimuat
     cartController.cartItems.forEach((product) {
       final quantity = cartController.cartQuantities[product.id] ?? 1;
       _controllers[product.id] = TextEditingController(text: quantity.toString());
@@ -31,7 +30,6 @@ class _CartPageState extends State<CartPage> {
 
   @override
   void dispose() {
-    // Bersihkan semua controller
     _controllers.forEach((key, controller) => controller.dispose());
     super.dispose();
   }
@@ -64,7 +62,6 @@ class _CartPageState extends State<CartPage> {
                   int quantity = cartController.cartQuantities[product.id] ?? 1;
                   double totalHarga = product.price * quantity;
 
-                  // Buat controller jika belum ada
                   _controllers.putIfAbsent(product.id, () =>
                       TextEditingController(text: quantity.toString()));
 
@@ -123,7 +120,7 @@ class _CartPageState extends State<CartPage> {
 
                                           cartController.cartQuantities[product.id] = newQty;
                                           cartController.saveCartToPrefs();
-                                          setState(() {}); // Update tampilan
+                                          setState(() {});
                                         },
                                         decoration: InputDecoration(
                                           contentPadding: EdgeInsets.symmetric(vertical: 0),
@@ -150,7 +147,7 @@ class _CartPageState extends State<CartPage> {
                             icon: Icon(Icons.delete_outline, color: Colors.grey[700]),
                             onPressed: () {
                               cartController.removeFromCart(product);
-                              _controllers.remove(product.id); // Hapus controller terkait
+                              _controllers.remove(product.id);
                               setState(() {});
                             },
                           )
@@ -176,7 +173,23 @@ class _CartPageState extends State<CartPage> {
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    Get.toNamed('/pembayaran');
+                    double totalHargaSemua = 0;
+                    cartController.cartItems.forEach((product) {
+                      int quantity = cartController.cartQuantities[product.id] ?? 1;
+                      totalHargaSemua += product.price * quantity;
+                    });
+
+                    Get.toNamed('/pembayaran', arguments: {
+                    'totalHarga': totalHargaSemua,
+                    'items': cartController.cartItems.map((product) {
+                      int quantity = cartController.cartQuantities[product.id] ?? 1;
+                      return {
+                        'name': product.name,
+                        'price': product.price,
+                        'quantity': quantity,
+                      };
+                    }).toList()
+                  });
                   },
                 ),
               ),
