@@ -9,17 +9,16 @@ import 'edit_menu_page.dart';
 import '../controllers/cart_controller.dart';
 import 'cart_page.dart';
 
-
-
 class MenuPage extends StatefulWidget {
   @override
   _MenuPageState createState() => _MenuPageState();
 }
 
-class _MenuPageState extends State<MenuPage> {
+class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin {
   final MyMenuController.MenuController menuController = Get.put(MyMenuController.MenuController());
   final TextEditingController searchController = TextEditingController();
-  bool hasRedirected = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   String formatRupiah(double price) {
     return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ').format(price);
@@ -28,22 +27,39 @@ class _MenuPageState extends State<MenuPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch products every time the page is opened
     menuController.fetchProducts();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 800),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text("Daftar Menu"),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.shade600,
+        elevation: 4,
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              Get.to(() => CartPage());
-            },
+            onPressed: () => Get.to(() => CartPage()),
           ),
           IconButton(
             icon: const Icon(Icons.search),
@@ -62,62 +78,80 @@ class _MenuPageState extends State<MenuPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Obx(() => DropdownButton<String>( 
+            padding: const EdgeInsets.all(12.0),
+            child: Obx(() => Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
                   value: menuController.selectedCategory.value,
                   isExpanded: true,
                   items: menuController.categories.map((String category) {
-                    return DropdownMenuItem<String>(value: category, child: Text(category));
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
                   }).toList(),
                   onChanged: (value) {
                     menuController.selectedCategory.value = value!;
                     menuController.filterProducts();
                   },
-                )),
+                ),
+              ),
+            )),
           ),
           Expanded(
             child: Obx(() {
               if (menuController.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.8,
+                  ),
+                  itemCount: menuController.filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    return ProductCard(
+                      product: menuController.filteredProducts[index],
+                      onEdit: () {
+                        Get.to(EditMenuPage(product: menuController.filteredProducts[index]));
+                      },
+                      onDelete: () {
+                        _showDeleteConfirmationDialog(context, menuController.filteredProducts[index].id);
+                      },
+                      onPesan: () {
+                        final CartController cartController = Get.put(CartController());
+                        cartController.addToCart(menuController.filteredProducts[index]);
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(10),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.8,
+                        Get.snackbar(
+                          "Berhasil",
+                          "${menuController.filteredProducts[index].name} ditambahkan ke keranjang",
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white,
+                          duration: const Duration(seconds: 2),
+                          margin: const EdgeInsets.all(10),
+                        );
+                      },
+                    );
+                  },
                 ),
-                itemCount: menuController.filteredProducts.length,
-                itemBuilder: (context, index) {
-                  return ProductCard(
-                    product: menuController.filteredProducts[index],
-                    onEdit: () {
-                      print("EDIT PRODUCT: ${menuController.filteredProducts[index].name}");
-                      Get.to(EditMenuPage(product: menuController.filteredProducts[index]));
-                    },
-                    onDelete: () {
-                      menuController.deleteProduct(menuController.filteredProducts[index].id);
-                    },
-                    onPesan: () {
-                      final CartController cartController = Get.put(CartController());
-                      cartController.addToCart(menuController.filteredProducts[index]);
-
-                      // Menampilkan pop-up notifikasi berhasil
-                      Get.snackbar(
-                        "Berhasil", 
-                        "${menuController.filteredProducts[index].name} ditambahkan ke keranjang",
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        duration: const Duration(seconds: 2),
-                        margin: const EdgeInsets.all(10),
-                      );
-                    },
-
-                  );
-                },
               );
             }),
           ),
@@ -126,26 +160,23 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-
-
   void _showDeleteConfirmationDialog(BuildContext context, int productId) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text("Konfirmasi Penghapusan"),
           content: const Text("Apakah Anda yakin ingin menghapus produk ini?"),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Menutup dialog
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text("Batal"),
             ),
             TextButton(
               onPressed: () {
-                menuController.deleteProduct(productId);  // Menghapus produk setelah konfirmasi
-                Navigator.of(context).pop(); // Menutup dialog setelah hapus produk
+                menuController.deleteProduct(productId);
+                Navigator.of(context).pop();
               },
               child: const Text("Hapus"),
             ),
@@ -155,6 +186,7 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 }
+
 class ProductSearchDelegate extends SearchDelegate<String> {
   final MyMenuController.MenuController menuController;
 
@@ -165,9 +197,7 @@ class ProductSearchDelegate extends SearchDelegate<String> {
     return [
       IconButton(
         icon: const Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
+        onPressed: () => query = '',
       ),
     ];
   }
@@ -176,9 +206,7 @@ class ProductSearchDelegate extends SearchDelegate<String> {
   Widget? buildLeading(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, '');
-      },
+      onPressed: () => close(context, ''),
     );
   }
 

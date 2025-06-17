@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../services/order_service.dart'; // Pastikan path ini sesuai struktur foldermu
 
 class PendapatanPage extends StatefulWidget {
   @override
@@ -10,16 +11,33 @@ class PendapatanPage extends StatefulWidget {
 class _PendapatanPageState extends State<PendapatanPage> {
   String _filter = 'perhari';
   DateTime _selectedDate = DateTime.now();
+  List<Map<String, dynamic>> _dataPendapatan = [];
+  bool _isLoading = true;
 
-  // Contoh data dummy
-  final List<Map<String, dynamic>> _dataPendapatan = [
-    {"tanggal": "2025-05-01", "jumlah": 100000},
-    {"tanggal": "2025-05-02", "jumlah": 150000},
-    {"tanggal": "2025-05-03", "jumlah": 125000},
-    {"tanggal": "2025-05-03", "jumlah": 75000},
-    {"tanggal": "2025-04-01", "jumlah": 90000},
-    {"tanggal": "2025-04-02", "jumlah": 100000},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    fetchPendapatan();
+  }
+
+  Future<void> fetchPendapatan() async {
+    try {
+      final data = await OrderService.fetchPendapatan();
+      if (mounted) {
+        setState(() {
+          _dataPendapatan = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredData {
     final formatter = DateFormat('yyyy-MM-dd');
@@ -73,111 +91,126 @@ class _PendapatanPageState extends State<PendapatanPage> {
       appBar: AppBar(
         title: Text('Laporan Pendapatan'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            // Filter
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButton<String>(
-                    value: _filter,
-                    items: [
-                      DropdownMenuItem(value: 'perhari', child: Text('Per Hari')),
-                      DropdownMenuItem(value: 'perbulan', child: Text('Per Bulan')),
-                      DropdownMenuItem(value: 'semua', child: Text('Semua')),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  // Filter dan tanggal
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: _filter,
+                          items: [
+                            DropdownMenuItem(
+                                value: 'perhari', child: Text('Per Hari')),
+                            DropdownMenuItem(
+                                value: 'perbulan', child: Text('Per Bulan')),
+                            DropdownMenuItem(
+                                value: 'semua', child: Text('Semua')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _filter = val);
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: _pickDate,
+                        child:
+                            Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
+                      ),
                     ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _filter = val);
-                    },
                   ),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _pickDate,
-                  child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Total Pendapatan: ${formatCurrency.format(pendapatanTotal)}',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
+                  SizedBox(height: 10),
+                  Text(
+                    'Total Pendapatan: ${formatCurrency.format(pendapatanTotal)}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 20),
 
-            // Grafik pendapatan
-            Expanded(
-              child: _pendapatanPerTanggal.isEmpty
-                  ? Center(child: Text("Tidak ada data"))
-                  : BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        barGroups: _pendapatanPerTanggal.entries
-                            .toList()
-                            .asMap()
-                            .entries
-                            .map(
-                              (entry) => BarChartGroupData(
-                                x: entry.key,
-                                barRods: [
-                                  BarChartRodData(
-                                    toY: entry.value.value / 1000,
-                                    color: Colors.green,
-                                    width: 16,
+                  // Grafik pendapatan
+                  _pendapatanPerTanggal.isEmpty
+                      ? Expanded(child: Center(child: Text("Tidak ada data")))
+                      : Expanded(
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              barGroups: _pendapatanPerTanggal.entries
+                                  .toList()
+                                  .asMap()
+                                  .entries
+                                  .map(
+                                    (entry) => BarChartGroupData(
+                                      x: entry.key,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: entry.value.value / 1000,
+                                          color: Colors.green,
+                                          width: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  .toList(),
+                              titlesData: FlTitlesData(
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      final dateKeys = _pendapatanPerTanggal.keys.toList();
+                                      if (index >= 0 &&
+                                          index < dateKeys.length) {
+                                        return Text(DateFormat('MM-dd').format(
+                                            DateTime.parse(dateKeys[index])));
+                                      }
+                                      return Text('');
+                                    },
                                   ),
-                                ],
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 40,
+                                    getTitlesWidget: (value, _) =>
+                                        Text('${(value * 1000).toInt()}'),
+                                  ),
+                                ),
                               ),
-                            )
-                            .toList(),
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                final index = value.toInt();
-                                final dateKeys =
-                                    _pendapatanPerTanggal.keys.toList();
-                                if (index >= 0 && index < dateKeys.length) {
-                                  return Text(DateFormat('MM-dd')
-                                      .format(DateTime.parse(dateKeys[index])));
-                                }
-                                return Text('');
-                              },
-                            ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 40,
-                              getTitlesWidget: (value, _) =>
-                                  Text('${(value * 1000).toInt()}'),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-            ),
 
-            SizedBox(height: 10),
-            Divider(),
-            Text('Detail Transaksi:', style: TextStyle(fontWeight: FontWeight.bold)),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _filteredData.length,
-                itemBuilder: (context, index) {
-                  final item = _filteredData[index];
-                  return ListTile(
-                    title: Text('Tanggal: ${item['tanggal']}'),
-                    trailing: Text(formatCurrency.format(item['jumlah'])),
-                  );
-                },
+                  SizedBox(height: 10),
+                  Divider(),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Detail Transaksi:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  SizedBox(height: 8),
+
+                  // List detail transaksi
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _filteredData.length,
+                      itemBuilder: (context, index) {
+                        final item = _filteredData[index];
+                        return ListTile(
+                          title: Text('Tanggal: ${item['tanggal']}'),
+                          trailing: Text(formatCurrency.format(item['jumlah'])),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
