@@ -1,70 +1,76 @@
+// File: pendapatan_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../services/order_service.dart'; // Pastikan path ini sesuai struktur foldermu
+import '../models/pendapatan_model.dart';
+import '../services/order_service.dart';
+import '../widgets/bar_chart_widget.dart';
+import '../widgets/produk_terlaris_chart.dart';
+import '../widgets/transaksi_list.dart';
+import '../utils/date_helper.dart';
+
+enum FilterMode { perhari, perbulan, semua }
 
 class PendapatanPage extends StatefulWidget {
   @override
-  _PendapatanPageState createState() => _PendapatanPageState();
+  State<PendapatanPage> createState() => _PendapatanPageState();
 }
 
 class _PendapatanPageState extends State<PendapatanPage> {
-  String _filter = 'perhari';
+  FilterMode _filter = FilterMode.perhari;
   DateTime _selectedDate = DateTime.now();
-  List<Map<String, dynamic>> _dataPendapatan = [];
   bool _isLoading = true;
+
+  List<PendapatanModel> _dataPendapatan = [];
+  List<Map<String, dynamic>> _produkTerlaris = [];
 
   @override
   void initState() {
     super.initState();
-    fetchPendapatan();
+    _loadData();
+    print('DATA PENDAPATAN: $_dataPendapatan');
+print('FILTERED DATA: $_filteredData');
+print('PRODUK TERLARIS: $_produkTerlaris');
+
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    await fetchPendapatan();
+    await fetchProdukTerlaris();
+    setState(() => _isLoading = false);
   }
 
   Future<void> fetchPendapatan() async {
     try {
-      final data = await OrderService.fetchPendapatan();
-      if (mounted) {
-        setState(() {
-          _dataPendapatan = data;
-          _isLoading = false;
-        });
-      }
+      final type = _filter == FilterMode.perhari
+          ? 'day'
+          : _filter == FilterMode.perbulan
+              ? 'day'
+              : 'month';
+
+      final data = await OrderService.fetchPendapatan(
+        type: type,
+        year: _selectedDate.year,
+        month: _filter != FilterMode.semua ? _selectedDate.month : null,
+        day: _filter == FilterMode.perhari ? _selectedDate.day : null,
+      );
+      _dataPendapatan = PendapatanModel.fromJsonList(data);
     } catch (e) {
-      print('Error: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      print("Error fetching pendapatan: $e");
     }
   }
 
-  List<Map<String, dynamic>> get _filteredData {
-    final formatter = DateFormat('yyyy-MM-dd');
-    final selectedStr = formatter.format(_selectedDate);
-
-    if (_filter == 'perhari') {
-      return _dataPendapatan
-          .where((item) => item['tanggal'] == selectedStr)
-          .toList();
-    } else if (_filter == 'perbulan') {
-      return _dataPendapatan.where((item) {
-        final date = DateTime.parse(item['tanggal']);
-        return date.month == _selectedDate.month &&
-            date.year == _selectedDate.year;
-      }).toList();
-    } else {
-      return _dataPendapatan;
+  Future<void> fetchProdukTerlaris() async {
+    try {
+      final data = await OrderService.fetchProdukTerlaris(
+        year: _selectedDate.year,
+        month: _filter == FilterMode.perbulan ? _selectedDate.month : null,
+      );
+      _produkTerlaris = List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      print("Error fetching produk terlaris: $e");
     }
-  }
-
-  Map<String, double> get _pendapatanPerTanggal {
-    Map<String, double> result = {};
-    for (var item in _filteredData) {
-      result[item['tanggal']] = (result[item['tanggal']] ?? 0) +
-          (item['jumlah'] as num).toDouble();
-    }
-    return result;
   }
 
   Future<void> _pickDate() async {
@@ -76,141 +82,101 @@ class _PendapatanPageState extends State<PendapatanPage> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+      await _loadData();
     }
+  }
+
+  List<PendapatanModel> get _filteredData {
+    return _dataPendapatan.where((e) {
+      if (_filter == FilterMode.perhari) {
+        return DateHelper.isSameDay(e.label, _selectedDate);
+      } else if (_filter == FilterMode.perbulan) {
+        return e.label.month == _selectedDate.month &&
+            e.label.year == _selectedDate.year;
+      }
+      return true;
+    }).toList();
+  }
+
+  double get totalPendapatan =>
+      _filteredData.fold(0.0, (sum, item) => sum + item.jumlah);
+
+  Map<String, double> get _pendapatanPerTanggal {
+    final Map<String, double> map = {};
+    for (var item in _filteredData) {
+      final key = DateFormat('yyyy-MM-dd').format(item.label);
+      map[key] = (map[key] ?? 0) + item.jumlah;
+    }
+    return map;
   }
 
   @override
   Widget build(BuildContext context) {
-    final formatCurrency = NumberFormat.currency(locale: 'id', symbol: 'Rp ');
-    final pendapatanTotal = _filteredData.fold<int>(
-      0,
-      (sum, item) => sum + (item['jumlah'] as int),
-    );
+    final currency = NumberFormat.currency(locale: 'id', symbol: 'Rp ');
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Laporan Pendapatan'),
-      ),
+      appBar: AppBar(title: Text('Laporan Pendapatan')),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                children: [
-                  // Filter dan tanggal
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButton<String>(
-                          value: _filter,
-                          items: [
-                            DropdownMenuItem(
-                                value: 'perhari', child: Text('Per Hari')),
-                            DropdownMenuItem(
-                                value: 'perbulan', child: Text('Per Bulan')),
-                            DropdownMenuItem(
-                                value: 'semua', child: Text('Semua')),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _filter = val);
-                            }
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: _pickDate,
-                        child:
-                            Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Total Pendapatan: ${formatCurrency.format(pendapatanTotal)}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Grafik pendapatan
-                  _pendapatanPerTanggal.isEmpty
-                      ? Expanded(child: Center(child: Text("Tidak ada data")))
-                      : Expanded(
-                          child: BarChart(
-                            BarChartData(
-                              alignment: BarChartAlignment.spaceAround,
-                              barGroups: _pendapatanPerTanggal.entries
-                                  .toList()
-                                  .asMap()
-                                  .entries
-                                  .map(
-                                    (entry) => BarChartGroupData(
-                                      x: entry.key,
-                                      barRods: [
-                                        BarChartRodData(
-                                          toY: entry.value.value / 1000,
-                                          color: Colors.green,
-                                          width: 16,
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                  .toList(),
-                              titlesData: FlTitlesData(
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      final index = value.toInt();
-                                      final dateKeys = _pendapatanPerTanggal.keys.toList();
-                                      if (index >= 0 &&
-                                          index < dateKeys.length) {
-                                        return Text(DateFormat('MM-dd').format(
-                                            DateTime.parse(dateKeys[index])));
-                                      }
-                                      return Text('');
-                                    },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 40,
-                                    getTitlesWidget: (value, _) =>
-                                        Text('${(value * 1000).toInt()}'),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                  SizedBox(height: 10),
-                  Divider(),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Detail Transaksi:',
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFilterControls(),
+                    SizedBox(height: 12),
+                    Text('Total Pendapatan: ${currency.format(totalPendapatan)}',
+                        style:
+                            TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    SizedBox(height: 16),
+                    BarChartWidget(data: _filteredData),
+                    SizedBox(height: 20),
+                    Divider(),
+                    Text('Detail Transaksi:',
                         style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(height: 8),
-
-                  // List detail transaksi
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _filteredData.length,
-                      itemBuilder: (context, index) {
-                        final item = _filteredData[index];
-                        return ListTile(
-                          title: Text('Tanggal: ${item['tanggal']}'),
-                          trailing: Text(formatCurrency.format(item['jumlah'])),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                    SizedBox(height: 8),
+                    TransaksiList(transaksi: _filteredData),
+                    SizedBox(height: 20),
+                    Divider(),
+                    Text('Produk Terlaris:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    ProdukTerlarisChart(data: ProdukTerlarisModel.fromJsonList(_produkTerlaris)),
+                  ],
+                ),
               ),
             ),
+    );
+  }
+
+  Widget _buildFilterControls() {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButton<FilterMode>(
+            value: _filter,
+            items: [
+              DropdownMenuItem(
+                  value: FilterMode.perhari, child: Text('Per Hari')),
+              DropdownMenuItem(
+                  value: FilterMode.perbulan, child: Text('Per Bulan')),
+              DropdownMenuItem(value: FilterMode.semua, child: Text('Semua')),
+            ],
+            onChanged: (val) async {
+              if (val != null) {
+                setState(() => _filter = val);
+                await _loadData();
+              }
+            },
+          ),
+        ),
+        SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: _pickDate,
+          child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
+        ),
+      ],
     );
   }
 }

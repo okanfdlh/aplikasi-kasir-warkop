@@ -37,7 +37,7 @@ class _PembayaranPageState extends State<PembayaranPage> {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token'); // pastikan key-nya sesuai saat login
 
-  final url = Uri.parse("http://10.0.0.2:8000/api/order/cash");
+  final url = Uri.parse("http://seduh.dev-web2.babelprov.go.id/api/order/cash");
 
   final Map<String, dynamic> body = {
     "name": namaController.text,
@@ -46,6 +46,8 @@ class _PembayaranPageState extends State<PembayaranPage> {
     "note": noteController.text,
     "items": items,
   };
+print("Items yang dikirim: $items");
+print("Token yang digunakan: $token");
 
   try {
     final response = await http.post(
@@ -61,15 +63,19 @@ class _PembayaranPageState extends State<PembayaranPage> {
       Get.snackbar("Sukses", "Pesanan berhasil disimpan!",
           backgroundColor: Colors.green[100], colorText: Colors.black);
       Get.offAllNamed('/order/struk', arguments: json.decode(response.body));
-    } else {
-      print(response.body);
-      Get.snackbar("Gagal", "Pesanan gagal disimpan!",
+    }  else {
+      print("Status: ${response.statusCode}");
+      print("Response body: ${response.body}");
+      Get.snackbar("Gagal", "Pesanan gagal: ${response.body}",
           backgroundColor: Colors.red[100], colorText: Colors.black);
     }
+
   } catch (e) {
     Get.snackbar("Error", e.toString(),
         backgroundColor: Colors.red[100], colorText: Colors.black);
   }
+  print("Data yang dikirim: ${json.encode(body)}");
+
 }
 
 
