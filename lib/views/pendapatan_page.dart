@@ -30,7 +30,6 @@ class _PendapatanPageState extends State<PendapatanPage> {
     print('DATA PENDAPATAN: $_dataPendapatan');
     print('FILTERED DATA: $_filteredData');
     print('PRODUK TERLARIS: $_produkTerlaris');
-
   }
 
   Future<void> _loadData() async {
@@ -77,13 +76,25 @@ class _PendapatanPageState extends State<PendapatanPage> {
     }
   }
 
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2024),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color(0xFF6C63FF),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -120,34 +131,45 @@ class _PendapatanPageState extends State<PendapatanPage> {
     final currency = NumberFormat.currency(locale: 'id', symbol: 'Rp ');
 
     return Scaffold(
-      appBar: AppBar(title: Text('Laporan Pendapatan')),
+      backgroundColor: Color(0xFFF8F9FA),
+      appBar: AppBar(
+      title: Text(
+        'Laporan Pendapatan',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
+          color: Colors.white,
+        ),
+      ),
+      backgroundColor: Colors.green.shade800,
+      elevation: 0,
+      centerTitle: true,
+    ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C63FF)),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              color: Color(0xFF6C63FF),
               child: SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFilterControls(),
-                    SizedBox(height: 12),
-                    Text('Total Pendapatan: ${currency.format(totalPendapatan)}',
-                        style:
-                            TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    SizedBox(height: 16),
-                    BarChartWidget(data: _filteredData),
+                    _buildFilterSection(),
                     SizedBox(height: 20),
-                    Divider(),
-                    Text('Detail Transaksi:',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    TransaksiList(transaksi: _filteredData),
+                    _buildTotalPendapatanCard(currency),
                     SizedBox(height: 20),
-                    Divider(),
-                    Text('Produk Terlaris:',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    ProdukTerlarisChart(data: ProdukTerlarisModel.fromJsonList(_produkTerlaris)),
+                    _buildChartSection(),
+                    SizedBox(height: 20),
+                    _buildTransaksiSection(),
+                    SizedBox(height: 20),
+                    _buildProdukTerlarisSection(),
+                    SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -155,33 +177,272 @@ class _PendapatanPageState extends State<PendapatanPage> {
     );
   }
 
-  Widget _buildFilterControls() {
-    return Row(
-      children: [
-        Expanded(
-          child: DropdownButton<FilterMode>(
-            value: _filter,
-            items: [
-              DropdownMenuItem(
-                  value: FilterMode.perhari, child: Text('Per Hari')),
-              DropdownMenuItem(
-                  value: FilterMode.perbulan, child: Text('Per Bulan')),
-              DropdownMenuItem(value: FilterMode.semua, child: Text('Semua')),
-            ],
-            onChanged: (val) async {
-              if (val != null) {
-                setState(() => _filter = val);
-                await _loadData();
-              }
-            },
+  Widget _buildFilterSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Filter Laporan',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D3748),
+            ),
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButton<FilterMode>(
+                    value: _filter,
+                    isExpanded: true,
+                    underline: SizedBox(),
+                    icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C63FF)),
+                    items: [
+                      DropdownMenuItem(
+                        value: FilterMode.perhari,
+                        child: Text('Per Hari', style: TextStyle(fontSize: 14)),
+                      ),
+                      DropdownMenuItem(
+                        value: FilterMode.perbulan,
+                        child: Text('Per Bulan', style: TextStyle(fontSize: 14)),
+                      ),
+                      DropdownMenuItem(
+                        value: FilterMode.semua,
+                        child: Text('Semua', style: TextStyle(fontSize: 14)),
+                      ),
+                    ],
+                    onChanged: (val) async {
+                      if (val != null) {
+                        setState(() => _filter = val);
+                        await _loadData();
+                      }
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: _pickDate,
+                  icon: Icon(Icons.calendar_today, size: 18),
+                  label: Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalPendapatanCard(NumberFormat currency) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color.fromARGB(211, 16, 192, 0), Color(0xFF34D399)],
         ),
-        SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: _pickDate,
-          child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-        ),
-      ],
+
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF6C63FF).withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Pendapatan',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  currency.format(totalPendapatan),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bar_chart, color: Color(0xFF6C63FF), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Grafik Pendapatan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3748),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          BarChartWidget(data: _filteredData),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransaksiSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.receipt_long, color: Color(0xFF10B981), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Detail Transaksi',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3748),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          TransaksiList(transaksi: _filteredData),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProdukTerlarisSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up, color: Color(0xFFF59E0B), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Produk Terlaris',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3748),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          ProdukTerlarisChart(data: ProdukTerlarisModel.fromJsonList(_produkTerlaris)),
+        ],
+      ),
     );
   }
 }
