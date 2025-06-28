@@ -41,7 +41,7 @@ class _PembayaranPageState extends State<PembayaranPage> {
 
   final Map<String, dynamic> body = {
     "name": namaController.text,
-    "no_meja": mejaController.text,
+    "customer_meja": mejaController.text,
     "phone": teleponController.text,
     "note": noteController.text,
     "items": items,
@@ -60,9 +60,26 @@ print("Token yang digunakan: $token");
     );
 
     if (response.statusCode == 200) {
-      Get.snackbar("Sukses", "Pesanan berhasil disimpan!",
-          backgroundColor: Colors.green[100], colorText: Colors.black);
-      Get.offAllNamed('/order/struk', arguments: json.decode(response.body));
+      try {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['order'] != null) {
+          Get.snackbar("Sukses", "Pesanan berhasil disimpan!",
+              backgroundColor: Colors.green[100], colorText: Colors.black);
+
+          final result = await Get.toNamed('/transaksi');
+
+          if (result == true && mounted) {
+            setState(() {});
+          }
+        } else {
+          Get.snackbar("Gagal", "Respon tidak valid: ${response.body}",
+              backgroundColor: Colors.red[100], colorText: Colors.black);
+        }
+      } catch (e) {
+        Get.snackbar("Gagal", "Gagal membaca respon JSON: $e",
+            backgroundColor: Colors.red[100], colorText: Colors.black);
+      }
     }  else {
       print("Status: ${response.statusCode}");
       print("Response body: ${response.body}");

@@ -12,10 +12,12 @@ class _OrdersPageState extends State<OrdersPage> {
   Map<String, String> orderStatus = {};
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Panggil ulang fetch setiap kali halaman dibuka
     fetchOrders();
   }
+
 
   Future<void> fetchOrders() async {
     try {

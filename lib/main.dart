@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
@@ -11,6 +12,7 @@ import 'package:coba1/views/pembayaran_page.dart';
 import 'package:get/get.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/bar_chart_widget.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -206,12 +208,14 @@ class _HomePageState extends State<HomePage> {
   String storeName = "RUMAH SEDUH";
   String storeAddress = "Jl. Parit Pekir Sebelah SDN 13\nSungailiat - Bangka";
   String? storeImagePath;
+  double totalHariIni = 0.0;
 
 
   @override
   void initState() {
     super.initState();
     _loadStoreInfo();
+    _fetchTotalHariIni();
   }
 
   Future<void> _loadStoreInfo() async {
@@ -222,6 +226,37 @@ class _HomePageState extends State<HomePage> {
       storeImagePath = prefs.getString('storeImagePath'); // muat path gambar
     });
   }
+  Future<void> _fetchTotalHariIni() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final now = DateTime.now();
+
+      final uri = Uri.parse(
+        'https://seduh.dev-web2.babelprov.go.id/api/pendapatan'
+        '?type=day&year=${now.year}&month=${now.month}&day=${now.day}',
+      );
+
+      final response = await http.get(uri, headers: {
+        HttpHeaders.authorizationHeader: 'Bearer $token',
+      });
+
+      if (response.statusCode == 200) {
+        final List<dynamic> body = json.decode(response.body);
+        setState(() {
+          totalHariIni = body.fold<double>(
+            0.0,
+            (sum, item) => sum + double.tryParse(item['jumlah'].toString())!,
+          );
+        });
+      } else {
+        print("Gagal mengambil data pendapatan hari ini");
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
 
 Future<void> _saveStoreInfo() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -243,9 +278,37 @@ Future<void> _pickStoreImage() async {
     });
   }
 }
-
-
-
+Widget _buildCustomButtonReloading(BuildContext context, String title, IconData icon, String route) {
+  return SizedBox(
+    width: 150,
+    height: 120,
+    child: ElevatedButton(
+      onPressed: () async {
+        await Get.toNamed(route); // Navigasi ke halaman Orderan
+        _fetchTotalHariIni();     // Refresh data saat kembali
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade800,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
+        shadowColor: Colors.green.shade300,
+        padding: EdgeInsets.all(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 36, color: Colors.white),
+          SizedBox(height: 10),
+          Text(
+            title,
+            style: TextStyle(fontSize: 14, color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -275,7 +338,11 @@ Future<void> _pickStoreImage() async {
               alignment: WrapAlignment.center,
               children: [
                 FadeInUp(delay: Duration(milliseconds: 300), child: _buildCustomButton(context, 'Daftar Menu', Icons.menu_book, '/menu')),
-                FadeInUp(delay: Duration(milliseconds: 400), child: _buildCustomButton(context, 'Orderan', Icons.shopping_cart, '/transaksi')),
+                FadeInUp(
+                  delay: Duration(milliseconds: 400),
+                  child: _buildCustomButtonReloading(
+                    context, 'Orderan', Icons.shopping_cart, '/transaksi'),
+                ),
                 FadeInUp(delay: Duration(milliseconds: 500), child: _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan')),
                 FadeInUp(delay: Duration(milliseconds: 600), child: _buildCustomButtonWithToken(context, 'Tambah Menu', Icons.add)),
               ],
@@ -287,6 +354,7 @@ Future<void> _pickStoreImage() async {
   }
 
   Widget _buildInfoCard() {
+    final currency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
     return AnimatedContainer(
       duration: Duration(milliseconds: 600),
       curve: Curves.easeInOut,
@@ -304,7 +372,10 @@ Future<void> _pickStoreImage() async {
             children: [
               Text('Total Penjualan Hari ini', style: TextStyle(color: Colors.white, fontSize: 16)),
               SizedBox(height: 4),
-              Text('Rp. 714,000', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(
+                currency.format(totalHariIni),
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           Text('Versi 1.0', style: TextStyle(color: Colors.white)),
@@ -312,6 +383,7 @@ Future<void> _pickStoreImage() async {
       ),
     );
   }
+
 
   Widget _buildStoreCard() {
   return Card(
