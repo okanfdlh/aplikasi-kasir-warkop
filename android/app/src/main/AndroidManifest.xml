@@ -1,7 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.coba1">>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.coba1">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="coba1"
+        android:label="rumah_seduh"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
