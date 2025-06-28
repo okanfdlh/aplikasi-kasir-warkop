@@ -32,6 +32,9 @@ class OrderService {
     };
     final uri = Uri.http(baseUrl, '/api/pendapatan', query);
     final res = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
+    print('📥 Pendapatan URI: $uri');
+    print('📤 Status: ${res.statusCode}');
+print('📤 Body: ${res.body}');
 
     if (res.statusCode == 200) {
       final List<dynamic> body = json.decode(res.body);
@@ -53,6 +56,10 @@ class OrderService {
     };
     final uri = Uri.http(baseUrl, '/api/produk-terlaris', query);
     final res = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
+
+    print('📥 Produk URI: $uri');
+    print('📤 Status: ${res.statusCode}');
+    print('📤 Body: ${res.body}');
 
     if (res.statusCode == 200) {
       final List<dynamic> body = json.decode(res.body);

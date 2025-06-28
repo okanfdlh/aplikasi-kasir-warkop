@@ -1,4 +1,3 @@
-// File: pendapatan_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -29,8 +28,8 @@ class _PendapatanPageState extends State<PendapatanPage> {
     super.initState();
     _loadData();
     print('DATA PENDAPATAN: $_dataPendapatan');
-print('FILTERED DATA: $_filteredData');
-print('PRODUK TERLARIS: $_produkTerlaris');
+    print('FILTERED DATA: $_filteredData');
+    print('PRODUK TERLARIS: $_produkTerlaris');
 
   }
 
@@ -55,7 +54,7 @@ print('PRODUK TERLARIS: $_produkTerlaris');
         month: _filter != FilterMode.semua ? _selectedDate.month : null,
         day: _filter == FilterMode.perhari ? _selectedDate.day : null,
       );
-      _dataPendapatan = PendapatanModel.fromJsonList(data);
+      _dataPendapatan = data;
     } catch (e) {
       print("Error fetching pendapatan: $e");
     }
@@ -67,11 +66,17 @@ print('PRODUK TERLARIS: $_produkTerlaris');
         year: _selectedDate.year,
         month: _filter == FilterMode.perbulan ? _selectedDate.month : null,
       );
-      _produkTerlaris = List<Map<String, dynamic>>.from(data);
+      _produkTerlaris = data
+          .map((item) => {
+                'product_name': item.productName,
+                'total_terjual': item.totalTerjual,
+              })
+          .toList();
     } catch (e) {
       print("Error fetching produk terlaris: $e");
     }
   }
+
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
