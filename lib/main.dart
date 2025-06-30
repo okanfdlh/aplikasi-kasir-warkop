@@ -1,19 +1,27 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:coba1/views/menu_page.dart';
 import 'package:coba1/views/transaksi_page.dart';
 import 'package:coba1/views/tambah_menu_page.dart';
 import 'package:coba1/views/pendapatan_page.dart';
 import 'package:coba1/views/pembayaran_page.dart';
 import 'package:coba1/views/log_history_page.dart';
-import 'package:get/get.dart';
-import 'package:animate_do/animate_do.dart';
-import 'package:image_picker/image_picker.dart';
 import '../widgets/bar_chart_widget.dart';
+import 'package:animate_do/animate_do.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -23,8 +31,82 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+Future<void> initializeService() async {
+  final service = FlutterBackgroundService();
+
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      onStart: onStart,
+      isForegroundMode: true,
+      autoStart: true,
+    ),
+    iosConfiguration: IosConfiguration(
+      onForeground: onStart,
+      onBackground: onIosBackground,
+    ),
+  );
+
+  await service.startService();
+}
+
+void onStart(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi notifikasi lokal
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidSettings);
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  Timer.periodic(Duration(seconds: 15), (timer) async {
+    if (service is AndroidServiceInstance && !(await service.isForegroundService())) return;
+
+    final response = await http.get(
+      Uri.parse('https://seduh.dev-web2.babelprov.go.id/api/order'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      final selesai = data.where((e) => e['status'] == 'Selesai');
+      if (selesai.isNotEmpty) {
+        await flutterLocalNotificationsPlugin.show(
+          888,
+          'Orderan Selesai',
+          'Ada ${selesai.length} orderan baru!',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'order_channel', // channelId
+              'Order Notif',   // channelName
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
+          ),
+        );
+      }
+    }
+  });
+}
+
+@pragma('vm:entry-point')
+Future<bool> onIosBackground(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  return true;
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
+
+  // Inisialisasi notifikasi di awal
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidSettings);
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+
+  await initializeService();
   runApp(MyApp());
 }
 
@@ -50,7 +132,7 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/TambahMenuPage',
           page: () => TambahMenuPage(
-            bearerToken: Get.arguments, // Ambil token dari arguments
+            bearerToken: Get.arguments,
           ),
         ),
       ],
@@ -326,30 +408,33 @@ Widget _buildCustomButtonReloading(BuildContext context, String title, IconData 
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            FadeInDown(child: _buildInfoCard()),
-            SizedBox(height: 20),
-            FadeInDown(delay: Duration(milliseconds: 200), child: _buildStoreCard()),
-            SizedBox(height: 30),
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              alignment: WrapAlignment.center,
-              children: [
-                FadeInUp(delay: Duration(milliseconds: 300), child: _buildCustomButton(context, 'Daftar Menu', Icons.menu_book, '/menu')),
-                FadeInUp(
-                  delay: Duration(milliseconds: 400),
-                  child: _buildCustomButtonReloading(
-                    context, 'Orderan', Icons.shopping_cart, '/transaksi'),
-                ),
-                FadeInUp(delay: Duration(milliseconds: 500), child: _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan')),
-                FadeInUp(delay: Duration(milliseconds: 600), child: _buildCustomButtonWithToken(context, 'Tambah Menu', Icons.add)),
-              ],
-            ),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _loadStoreInfo();
+          await _fetchTotalHariIni();
+        },
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              FadeInDown(child: _buildInfoCard()),
+              SizedBox(height: 20),
+              FadeInDown(delay: Duration(milliseconds: 200), child: _buildStoreCard()),
+              SizedBox(height: 30),
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                alignment: WrapAlignment.center,
+                children: [
+                  FadeInUp(delay: Duration(milliseconds: 300), child: _buildCustomButton(context, 'Daftar Menu', Icons.menu_book, '/menu')),
+                  FadeInUp(delay: Duration(milliseconds: 400), child: _buildCustomButtonReloading(context, 'Orderan', Icons.shopping_cart, '/transaksi')),
+                  FadeInUp(delay: Duration(milliseconds: 500), child: _buildCustomButton(context, 'Laporan Pendapatan', Icons.attach_money, '/laporan_pendapatan')),
+                  FadeInUp(delay: Duration(milliseconds: 600), child: _buildCustomButtonWithToken(context, 'Tambah Menu', Icons.add)),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
