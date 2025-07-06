@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pendapatan_model.dart';
 
 class OrderService {
-  static const baseUrl = 'seduh.dev-web2.babelprov.go.id';
+  static const baseUrl = 'rumahseduh.shbhosting999.my.id/';
 
   static Future<List<dynamic>> fetchOrders() async {
     final response = await http.get(Uri.parse('https://$baseUrl/api/orders'));

@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 
 class ApiService {
   final Dio dio = Dio(BaseOptions(
-    baseUrl: 'https://seduh.dev-web2.babelprov.go.id/api',
+    baseUrl: 'https://rumahseduh.shbhosting999.my.id/api',
     connectTimeout: Duration(seconds: 30),
     receiveTimeout: Duration(seconds: 30),
   ));

@@ -82,7 +82,7 @@ Future<void> loadToken() async {
         });
 
         response = await apiService.dio.post(
-          'https://seduh.dev-web2.babelprov.go.id/api/products/${widget.product.id}?_method=PUT',
+          'https://rumahseduh.shbhosting999.my.id/api/products/${widget.product.id}?_method=PUT',
           data: formData,
           options: dio.Options(
             headers: {
@@ -93,7 +93,7 @@ Future<void> loadToken() async {
         );
       } else {
         response = await apiService.dio.put(
-          'https://seduh.dev-web2.babelprov.go.id/api/products/${widget.product.id}',
+          'https://rumahseduh.shbhosting999.my.id/api/products/${widget.product.id}',
           data: {
             'name': nameController.text.trim(),
             'category': selectedCategory,
@@ -192,7 +192,7 @@ Future<void> loadToken() async {
               _selectedImage != null
                   ? Image.file(_selectedImage!, height: 150)
                   : widget.product.image.isNotEmpty
-                      ? Image.network('https://seduh.dev-web2.babelprov.go.id/storage/${widget.product.image}', height: 150)
+                      ? Image.network('https://rumahseduh.shbhosting999.my.id/storage/${widget.product.image}', height: 150)
                       : Container(height: 150, color: Colors.grey[300]),
               SizedBox(height: 10),
               ElevatedButton(

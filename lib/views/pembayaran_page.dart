@@ -37,7 +37,7 @@ class _PembayaranPageState extends State<PembayaranPage> {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token'); // pastikan key-nya sesuai saat login
 
-  final url = Uri.parse("http://seduh.dev-web2.babelprov.go.id/api/order/cash");
+  final url = Uri.parse("https://rumahseduh.shbhosting999.my.id/api/order/cash");
 
   final Map<String, dynamic> body = {
     "name": namaController.text,

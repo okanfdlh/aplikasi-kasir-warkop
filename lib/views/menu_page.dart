@@ -643,7 +643,7 @@ class ProductSearchDelegate extends SearchDelegate<String> {
                 image: NetworkImage(
                   product.image.startsWith('http')
                       ? product.image
-                      : 'https://seduh.dev-web2.babelprov.go.id/storage/${product.image}',
+                      : 'https://rumahseduh.shbhosting999.my.id/storage/${product.image}',
                 ),
                 fit: BoxFit.cover,
               ),

@@ -64,7 +64,7 @@ void onStart(ServiceInstance service) async {
     if (service is AndroidServiceInstance && !(await service.isForegroundService())) return;
 
     final response = await http.get(
-      Uri.parse('https://seduh.dev-web2.babelprov.go.id/api/order'),
+      Uri.parse('https://rumahseduh.shbhosting999.my.id/api/order'),
       headers: {'Authorization': 'Bearer $token'},
     );
 
@@ -187,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     final response = await http.post(
-      Uri.parse('https://seduh.dev-web2.babelprov.go.id/api/login'),
+      Uri.parse('https://rumahseduh.shbhosting999.my.id/api/login'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "email": emailController.text,
@@ -317,7 +317,7 @@ class _HomePageState extends State<HomePage> {
       final now = DateTime.now();
 
       final uri = Uri.parse(
-        'https://seduh.dev-web2.babelprov.go.id/api/pendapatan'
+        'https://rumahseduh.shbhosting999.my.id/api/pendapatan'
         '?type=day&year=${now.year}&month=${now.month}&day=${now.day}',
       );
 

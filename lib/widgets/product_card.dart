@@ -72,7 +72,7 @@ class _ProductCardState extends State<ProductCard> {
                   child: Image.network(
                     widget.product.image.startsWith('http')
                         ? widget.product.image
-                        : 'https://seduh.dev-web2.babelprov.go.id/storage/${widget.product.image}',
+                        : 'https://rumahseduh.shbhosting999.my.id/storage/${widget.product.image}',
                     width: double.infinity,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Icon(
@@ -82,24 +82,26 @@ class _ProductCardState extends State<ProductCard> {
                     ),
                   ),
                 ),
-                Positioned(
-                  right: 5,
-                  top: 5,
-                  child: Row(
-                    children: [
+               Positioned(
+                right: 5,
+                top: 5,
+                child: Row(
+                  children: [
+                    if (widget.onEdit != null)
                       IconButton(
                         icon: Icon(Icons.edit, color: Colors.white),
                         onPressed: widget.onEdit,
                       ),
+                    if (widget.onDelete != null)
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.redAccent),
                         onPressed: () {
                           _showDeleteConfirmationDialog(context, widget.product.id);
                         },
                       ),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
               ],
             ),
           ),

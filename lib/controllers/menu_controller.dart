@@ -21,7 +21,7 @@ class MenuController extends GetxController {
   Future<void> fetchProducts() async {
     try {
       isLoading(true);
-      final response = await http.get(Uri.parse("https://seduh.dev-web2.babelprov.go.id/api/products"));
+      final response = await http.get(Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products"));
 
       print("Response Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
@@ -88,7 +88,7 @@ class MenuController extends GetxController {
       }
 
       final response = await http.delete(
-        Uri.parse("https://seduh.dev-web2.babelprov.go.id/api/products/$id"),
+        Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products/$id"),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
