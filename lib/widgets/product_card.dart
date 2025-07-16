@@ -4,54 +4,28 @@ import 'package:intl/intl.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
+  final void Function(int quantity)? onPesan;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  final VoidCallback? onPesan; // Callback for "Pesan" button
 
-  ProductCard({
+  const ProductCard({
+    super.key,
     required this.product,
+    this.onPesan,
     this.onEdit,
     this.onDelete,
-    this.onPesan,
   });
 
   @override
-  _ProductCardState createState() => _ProductCardState();
+  State<ProductCard> createState() => _ProductCardState();
 }
 
 class _ProductCardState extends State<ProductCard> {
-  int _quantity = 0; // Track the quantity of the product being ordered
+  int _quantity = 0;
 
   String formatRupiah(double price) {
     return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
         .format(price);
-  }
-
-  void _showDeleteConfirmationDialog(BuildContext context, int productId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Konfirmasi Penghapusan"),
-          content: const Text("Apakah Anda yakin ingin menghapus produk ini?"),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text("Batal"),
-            ),
-            TextButton(
-              onPressed: () {
-                if (widget.onDelete != null) widget.onDelete!();
-                Navigator.of(context).pop(); // Close dialog after deleting
-              },
-              child: const Text("Hapus"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -64,101 +38,105 @@ class _ProductCardState extends State<ProductCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Gambar dan tombol edit/delete
           Expanded(
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                   child: Image.network(
                     widget.product.image.startsWith('http')
                         ? widget.product.image
                         : 'https://rumahseduh.shbhosting999.my.id/storage/${widget.product.image}',
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.image_not_supported,
-                      size: 100,
-                      color: Colors.grey,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
                     ),
                   ),
                 ),
-               Positioned(
-                right: 5,
-                top: 5,
-                child: Row(
-                  children: [
-                    if (widget.onEdit != null)
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.white),
-                        onPressed: widget.onEdit,
-                      ),
-                    if (widget.onDelete != null)
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.redAccent),
-                        onPressed: () {
-                          _showDeleteConfirmationDialog(context, widget.product.id);
-                        },
-                      ),
-                  ],
+                Positioned(
+                  right: 5,
+                  top: 5,
+                  child: Row(
+                    children: [
+                      if (widget.onEdit != null)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.edit, size: 18, color: Colors.white),
+                            onPressed: widget.onEdit,
+                          ),
+                        ),
+                      const SizedBox(width: 4),
+                      if (widget.onDelete != null)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
+                            onPressed: widget.onDelete, // langsung panggil onDelete
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
               ],
             ),
           ),
+
+          // Konten bawah
           Padding(
-            padding: EdgeInsets.all(0),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.product.name,
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
                 Text(formatRupiah(widget.product.price),
-                    style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(height: 0),
+                    style: const TextStyle(
+                        color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold)),
                 Text("Kategori: ${widget.product.category}",
-                    style: TextStyle(fontSize: 10, color: Colors.grey)),
-                SizedBox(height: 0),
-                // Quantity Controls
+                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                const SizedBox(height: 8),
+                // Quantity
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.remove, color: Colors.red),
+                      icon: const Icon(Icons.remove, color: Colors.red),
                       onPressed: () {
-                        if (_quantity > 0) {
-                          setState(() {
-                            _quantity--;
-                          });
-                        }
+                        if (_quantity > 0) setState(() => _quantity--);
                       },
+                      iconSize: 18,
                     ),
-                    Text("$_quantity", style: TextStyle(fontSize: 13)),
+                    Text('$_quantity', style: const TextStyle(fontSize: 13)),
                     IconButton(
-                      icon: Icon(Icons.add, color: Colors.green),
-                      onPressed: () {
-                        setState(() {
-                          _quantity++;
-                        });
-                      },
+                      icon: const Icon(Icons.add, color: Colors.green),
+                      onPressed: () => setState(() => _quantity++),
+                      iconSize: 18,
                     ),
                   ],
                 ),
-                SizedBox(height: 0),
                 SizedBox(
                   width: double.infinity,
+                  height: 32,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      if (widget.onPesan != null) widget.onPesan!();
-                      // Pass the quantity to the order function
-                      print("Pesan ${widget.product.name}, Quantity: $_quantity");
+                      if (widget.onPesan != null && _quantity > 0) {
+                        widget.onPesan!(_quantity);
+                      }
                     },
-                    icon: Icon(Icons.shopping_cart),
-                    label: Text("Pesan"),
+                    icon: const Icon(Icons.shopping_cart, size: 14),
+                    label: const Text("Pesan", style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                     ),

@@ -619,6 +619,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                         border: Border.all(color: Colors.grey.shade200),
                                       ),
                                       child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Icon(
                                             Icons.update,
@@ -626,15 +627,20 @@ class _OrdersPageState extends State<OrdersPage> {
                                             size: 20,
                                           ),
                                           const SizedBox(width: 8),
-                                          const Text(
-                                            "Update Status:",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black87,
+                                          const Flexible(
+                                            flex: 2,
+                                            child: Text(
+                                              "Update Status:",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.black87,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
+                                            flex: 4,
                                             child: Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 12),
                                               decoration: BoxDecoration(
@@ -659,7 +665,12 @@ class _OrdersPageState extends State<OrdersPage> {
                                                                   size: 16,
                                                                 ),
                                                                 const SizedBox(width: 8),
-                                                                Text(status),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    status,
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                  ),
+                                                                ),
                                                               ],
                                                             ),
                                                           ))
@@ -676,6 +687,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                         ],
                                       ),
                                     ),
+
                                     const SizedBox(height: 16),
                                     // Detail Button
                                     SizedBox(

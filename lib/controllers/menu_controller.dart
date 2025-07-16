@@ -17,11 +17,13 @@ class MenuController extends GetxController {
     super.onInit();
   }
 
-  // 🔄 Ambil semua produk dari API
+  /// 🔄 Ambil semua produk dari API
   Future<void> fetchProducts() async {
     try {
       isLoading(true);
-      final response = await http.get(Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products"));
+      final response = await http.get(
+        Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products"),
+      );
 
       print("Response Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
@@ -31,27 +33,28 @@ class MenuController extends GetxController {
 
         if (data is List) {
           final loadedProducts = data.map<Product>((item) => Product.fromJson(item)).toList();
+
           if (!isClosed) {
             products.value = loadedProducts;
             categories.value = ["Semua"] + products.map((p) => p.category).toSet().toList();
             selectedCategory.value = "Semua";
             filterProducts();
-            print("Data berhasil dimuat: ${products.length} item.");
+            print("✅ Produk dimuat: ${products.length} item.");
           }
         } else {
-          print("Data yang diterima bukan List");
+          print("⚠️ Data yang diterima bukan List.");
         }
       } else {
-        print("Gagal mengambil data. Status Code: ${response.statusCode}");
+        print("❌ Gagal mengambil data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching products: $e");
+      print("❌ Error fetching products: $e");
     } finally {
       isLoading(false);
     }
   }
 
-  // 🔁 Filter produk berdasarkan kategori
+  /// 🔁 Filter produk berdasarkan kategori aktif
   void filterProducts() {
     if (selectedCategory.value == "Semua") {
       filteredProducts.assignAll(products);
@@ -62,7 +65,7 @@ class MenuController extends GetxController {
     }
   }
 
-  // 🔍 Cari produk berdasarkan nama atau kategori
+  /// 🔍 Cari produk berdasarkan nama atau kategori
   void searchProducts(String query) {
     if (query.isEmpty) {
       filterProducts();
@@ -75,15 +78,16 @@ class MenuController extends GetxController {
     }
   }
 
-  // ❌ Hapus produk berdasarkan ID
+  /// ❌ Hapus produk dari API & update lokal
   Future<void> deleteProduct(int id) async {
     try {
       isLoading(true);
+
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
       if (token == null) {
-        print("Token tidak ditemukan. User mungkin belum login.");
+        print("⚠️ Token tidak ditemukan. User mungkin belum login.");
         return;
       }
 
@@ -95,34 +99,36 @@ class MenuController extends GetxController {
         },
       );
 
+      print("DELETE Status: ${response.statusCode}");
+      print("DELETE Body: ${response.body}");
+
       if (response.statusCode == 200) {
         products.removeWhere((product) => product.id == id);
-        filteredProducts.removeWhere((product) => product.id == id);
-        print("Produk berhasil dihapus");
+        filterProducts(); // 🟢 Ini penting untuk sinkron filteredProducts
+        print("✅ Produk berhasil dihapus dari memori");
       } else {
-        print("Gagal menghapus produk. Status Code: ${response.statusCode}");
-        print("Body: ${response.body}");
+        print("❌ Gagal menghapus produk. Status: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error deleting product: $e");
+      print("❌ Error deleting product: $e");
     } finally {
       isLoading(false);
     }
   }
 
-  // 🆕 Perbarui produk dalam daftar
+  /// 🆕 Perbarui produk dalam memori
   void updateProduct(Product updatedProduct) {
     int index = products.indexWhere((p) => p.id == updatedProduct.id);
     if (index != -1) {
       products[index] = updatedProduct;
       filterProducts();
-      print("Produk berhasil diperbarui di memori");
+      print("✅ Produk berhasil diperbarui di memori");
     } else {
-      print("Produk dengan ID ${updatedProduct.id} tidak ditemukan");
+      print("⚠️ Produk dengan ID ${updatedProduct.id} tidak ditemukan");
     }
   }
 
-  // 🔄 Refresh manual
+  /// 🔄 Refresh manual
   Future<void> refreshProducts() async {
     await fetchProducts();
   }

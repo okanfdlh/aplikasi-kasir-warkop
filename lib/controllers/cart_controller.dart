@@ -13,13 +13,13 @@ class CartController extends GetxController {
     super.onInit();
   }
 
-  void addToCart(Product product) async {
-  if (!cartItems.any((item) => item.id == product.id)) {
-    cartItems.add(product);
+  void addToCart(Product product, [int quantity = 1]) async {
+    if (!cartItems.any((item) => item.id == product.id)) {
+      cartItems.add(product);
+    }
+    cartQuantities[product.id] = (cartQuantities[product.id] ?? 0) + quantity;
+    await saveCartToPrefs();
   }
-  cartQuantities[product.id] = (cartQuantities[product.id] ?? 0) + 1;
-  await saveCartToPrefs();
-}
 
   void increaseQuantity(Product product) async {
   addToCart(product); // Gunakan addToCart agar kuantitas dan penyimpanan otomatis

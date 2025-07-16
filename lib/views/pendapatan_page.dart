@@ -7,6 +7,15 @@ import '../widgets/bar_chart_widget.dart';
 import '../widgets/produk_terlaris_chart.dart';
 import '../widgets/transaksi_list.dart';
 import '../utils/date_helper.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:excel/excel.dart' as ex;
+
 
 enum FilterMode { perhari, perbulan, semua }
 
@@ -124,6 +133,74 @@ class _PendapatanPageState extends State<PendapatanPage> {
       map[key] = (map[key] ?? 0) + item.jumlah;
     }
     return map;
+  }
+  Future<void> _exportToExcel() async {
+    final excel = ex.Excel.createExcel();
+    final sheet = excel['Laporan Pendapatan'];
+    final currency = NumberFormat.currency(locale: 'id', symbol: 'Rp ');
+
+    sheet.appendRow(['Tanggal', 'Jumlah']);
+
+    for (var item in _filteredData) {
+      sheet.appendRow([
+        DateFormat('dd/MM/yyyy').format(item.label),
+        currency.format(item.jumlah),
+      ]);
+    }
+
+    sheet.appendRow([]);
+    sheet.appendRow(['Total', currency.format(totalPendapatan)]);
+
+    final List<int>? fileBytes = excel.encode();
+    if (fileBytes == null) return;
+
+    if (await Permission.storage.request().isGranted) {
+    final directory = Directory('/storage/emulated/0/Download');
+    final path = '${directory.path}/laporan_pendapatan.xlsx';
+    final file = File(path);
+    await file.writeAsBytes(fileBytes);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('File disimpan di folder Download')),
+    );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Izin akses penyimpanan ditolak')),
+      );
+    }
+  }
+
+
+  Future<void> _exportToPDF() async {
+    final pdf = pw.Document();
+    final currency = NumberFormat.currency(locale: 'id', symbol: 'Rp ');
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Laporan Pendapatan', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 12),
+              pw.Text('Tanggal: ${DateFormat('dd MMMM yyyy').format(_selectedDate)}'),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                headers: ['Tanggal', 'Jumlah'],
+                data: _filteredData.map((e) => [
+                  DateFormat('dd/MM/yyyy').format(e.label),
+                  currency.format(e.jumlah),
+                ]).toList(),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text('Total: ${currency.format(totalPendapatan)}',
+                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
   @override
@@ -262,7 +339,25 @@ class _PendapatanPageState extends State<PendapatanPage> {
               ),
             ],
           ),
-        ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _exportToPDF,
+                icon: Icon(Icons.picture_as_pdf),
+                label: Text("Export PDF"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
+              ),
+              SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _exportToExcel,
+                icon: Icon(Icons.table_chart),
+                label: Text("Export Excel"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
+              ),
+            ],
+          ),
+                  ],
       ),
     );
   }

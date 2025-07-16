@@ -384,22 +384,22 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                                 onDelete: () {
                                   _showDeleteConfirmationDialog(context, menuController.filteredProducts[index].id);
                                 },
-                                onPesan: () {
-                                  final CartController cartController = Get.put(CartController());
-                                  cartController.addToCart(menuController.filteredProducts[index]);
+                               onPesan: (quantity) {
+                                final CartController cartController = Get.put(CartController());
+                                cartController.addToCart(menuController.filteredProducts[index], quantity);
 
-                                  Get.snackbar(
-                                    "Berhasil",
-                                    "${menuController.filteredProducts[index].name} ditambahkan ke keranjang",
-                                    snackPosition: SnackPosition.TOP,
-                                    backgroundColor: Colors.green.shade600,
-                                    colorText: Colors.white,
-                                    duration: const Duration(seconds: 2),
-                                    margin: const EdgeInsets.all(16),
-                                    borderRadius: 12,
-                                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                                  );
-                                },
+                                Get.snackbar(
+                                  "Berhasil",
+                                  "${menuController.filteredProducts[index].name} ($quantity) ditambahkan ke keranjang",
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.green.shade600,
+                                  colorText: Colors.white,
+                                  duration: const Duration(seconds: 2),
+                                  margin: const EdgeInsets.all(16),
+                                  borderRadius: 12,
+                                  icon: const Icon(Icons.check_circle, color: Colors.white),
+                                );
+                              },
                               ),
                             );
                           },
