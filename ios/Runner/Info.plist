@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Tambahkan sebelum tag </dict> terakhir -->
+	<key>UIBackgroundModes</key>
+	<array>
+	    <string>background-processing</string>
+	    <string>background-fetch</string>
+	</array>
 </dict>
 </plist>
