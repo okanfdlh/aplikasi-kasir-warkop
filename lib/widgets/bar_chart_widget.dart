@@ -9,13 +9,20 @@ class BarChartWidget extends StatelessWidget {
   const BarChartWidget({Key? key, required this.data}) : super(key: key);
 
   // Define your green color palette for the chart
-  static const Color _chartBarGreen = Color(0xFF4CAF50); // A clean, medium green for bars
-  static const Color _chartBarGradientStart = Color(0xFF66BB6A); // Lighter green for gradient start
-  static const Color _chartBarGradientEnd = Color(0xFF2E7D32); // Darker green for gradient end
-  static const Color _axisLabelColor = Color(0xFF424242); // Dark grey for axis labels (good contrast on light background)
-  static const Color _gridLineColor = Color(0xFFE0E0E0); // Light grey for subtle grid lines
-  static const Color _tooltipBgColor = Color(0xFF2E7D32); // Dark green for tooltip background
-  static const Color _tooltipAmountColor = Color(0xFFCCFF90); // Very light green for amount in tooltip
+  static const Color _chartBarGreen =
+      Color(0xFF4CAF50); // A clean, medium green for bars
+  static const Color _chartBarGradientStart =
+      Color(0xFF66BB6A); // Lighter green for gradient start
+  static const Color _chartBarGradientEnd =
+      Color(0xFF2E7D32); // Darker green for gradient end
+  static const Color _axisLabelColor = Color(
+      0xFF424242); // Dark grey for axis labels (good contrast on light background)
+  static const Color _gridLineColor =
+      Color(0xFFE0E0E0); // Light grey for subtle grid lines
+  static const Color _tooltipBgColor =
+      Color(0xFF2E7D32); // Dark green for tooltip background
+  static const Color _tooltipAmountColor =
+      Color(0xFFCCFF90); // Very light green for amount in tooltip
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +53,7 @@ class BarChartWidget extends StatelessWidget {
     }
 
     final maxValue = data.map((e) => e.jumlah).reduce((a, b) => a > b ? a : b);
-    
+
     final barGroups = data.asMap().entries.map((entry) {
       final index = entry.key;
       final item = entry.value;
@@ -54,11 +61,12 @@ class BarChartWidget extends StatelessWidget {
         x: index,
         barRods: [
           BarChartRodData(
-            toY: item.jumlah / 1000, // Assuming your values need scaling for the chart
+            toY: item.jumlah /
+                1000, // Assuming your values need scaling for the chart
             gradient: const LinearGradient(
               colors: [
                 _chartBarGradientStart, // Start with lighter green
-                _chartBarGradientEnd,   // End with darker green
+                _chartBarGradientEnd, // End with darker green
               ],
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
@@ -77,16 +85,19 @@ class BarChartWidget extends StatelessWidget {
 
     return Container(
       height: 250,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16), // Adjusted padding
+      padding: const EdgeInsets.symmetric(
+          horizontal: 8, vertical: 16), // Adjusted padding
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
-          maxY: (maxValue / 1000) * 1.2, // Adds some padding above the highest bar
+          maxY: (maxValue / 1000) *
+              1.2, // Adds some padding above the highest bar
           barGroups: barGroups,
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: (maxValue / 1000) / 4, // Adjust interval for fewer lines
+            horizontalInterval:
+                (maxValue / 1000) / 4, // Adjust interval for fewer lines
             getDrawingHorizontalLine: (value) {
               return const FlLine(
                 color: _gridLineColor, // Light green/grey for grid lines
@@ -99,8 +110,10 @@ class BarChartWidget extends StatelessWidget {
           ),
           titlesData: FlTitlesData(
             show: true, // Ensure titles are shown
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -113,7 +126,8 @@ class BarChartWidget extends StatelessWidget {
                       child: Text(
                         DateFormat('dd/MM').format(labels[idx]),
                         style: const TextStyle(
-                          color: _axisLabelColor, // Darker color for readability
+                          color:
+                              _axisLabelColor, // Darker color for readability
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -128,7 +142,8 @@ class BarChartWidget extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 50,
-                interval: (maxValue / 1000) / 4, // Match interval with horizontal grid lines
+                interval: (maxValue / 1000) /
+                    4, // Match interval with horizontal grid lines
                 getTitlesWidget: (value, meta) {
                   return Text(
                     '${NumberFormat.compact().format(value * 1000)}', // Show actual values
@@ -149,7 +164,10 @@ class BarChartWidget extends StatelessWidget {
               tooltipRoundedRadius: 8,
               tooltipPadding: const EdgeInsets.all(8),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final currency = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0); // No decimal digits
+                final currency = NumberFormat.currency(
+                    locale: 'id',
+                    symbol: 'Rp ',
+                    decimalDigits: 0); // No decimal digits
                 return BarTooltipItem(
                   '${DateFormat('dd MMM yyyy').format(labels[group.x])}\n', // Full date format
                   const TextStyle(

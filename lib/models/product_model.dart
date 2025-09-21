@@ -1,28 +1,66 @@
-import 'dart:convert';
-
 class Product {
   final int id;
   final String name;
+  final double price;
+  final int productCategoryId;
+  final String? categoryName;
+  final int stock;
   final String image;
-  final double price; // Make sure price is a double
-  final String category;
+  final int totalSold;
+  final DateTime? firstSoldAt;
+  final DateTime? lastSoldAt;
+  final int totalToday;
+  final int totalThisMonth;
+  final DateTime? updatedAt;
 
   Product({
     required this.id,
     required this.name,
-    required this.image,
     required this.price,
-    required this.category,
+    required this.productCategoryId,
+    required this.categoryName,
+    required this.stock,
+    required this.image,
+    required this.totalSold,
+    required this.firstSoldAt,
+    required this.lastSoldAt,
+    required this.totalToday,
+    required this.totalThisMonth,
+    required this.updatedAt,
   });
 
-  // Parsing JSON data to Product
   factory Product.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      return DateTime.tryParse(v.toString());
+    }
+
+    int parseInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
+    double parseDouble(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString()) ?? 0.0;
+    }
+
     return Product(
-      id: json['id'],
-      name: json['name'],
-      image: json['image'],
-      price: double.tryParse(json['price']) ?? 0.0, // Convert string to double safely
-      category: json['category'],
+      id: parseInt(json['id']),
+      name: json['name']?.toString() ?? '',
+      price: parseDouble(json['price']),
+      productCategoryId: json['product_category_id'] ?? 0,
+      categoryName: json['category_name']?.toString() ?? 'Tidak diketahui',
+      stock: parseInt(json['stock']),
+      image: json['image']?.toString() ?? '',
+      totalSold: parseInt(json['total_sold']),
+      firstSoldAt: parseDate(json['first_sold_at']),
+      lastSoldAt: parseDate(json['last_sold_at']),
+      totalThisMonth: parseInt(json['total_this_month']),
+      totalToday: parseInt(json['total_today']),
+      updatedAt: parseDate(json['updated_at']),
     );
   }
 
@@ -32,8 +70,11 @@ class Product {
       'id': id,
       'name': name,
       'image': image,
-      'price': price.toString(), // Convert price back to string when sending to API
-      'category': category,
+      'price':
+          price.toString(), // Convert price back to string when sending to API
+      'stock':
+          stock.toString(), // Convert stock back to string when sending to API
+      'category': categoryName,
     };
   }
 }

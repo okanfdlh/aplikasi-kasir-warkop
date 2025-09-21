@@ -1,6 +1,6 @@
-name: coba1
+name: coffeeorder
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -28,6 +28,13 @@ dependencies:
   pdf: ^3.10.4
   printing: ^5.12.0
   excel: ^2.1.0
+  google_fonts: ^4.0.4
+  gap: ^3.0.1
+  readmore: ^3.0.0
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.0
 
 dev_dependencies:
   flutter_test:
@@ -44,3 +51,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
+    - assets/images/
+    - assets/illustration/
+    - assets/icons/
+    - assets/fonts/
+    - assets/

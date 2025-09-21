@@ -8,7 +8,7 @@
 PRODUCT_NAME = coba1
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.coba1
+PRODUCT_BUNDLE_IDENTIFIER = com.aplikasi.warkop
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

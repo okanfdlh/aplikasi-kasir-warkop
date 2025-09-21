@@ -1,15 +1,21 @@
-import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'dart:io';
+
+import 'package:coffeeorder/services/api_service.dart';
+import 'package:dio/dio.dart';
+import 'package:get/get.dart' hide FormData, MultipartFile;
+import 'package:path/path.dart';
 import '../models/product_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MenuController extends GetxController {
-  var products = <Product>[].obs;
-  var filteredProducts = <Product>[].obs;
-  var categories = <String>[].obs;
-  var selectedCategory = "Semua".obs;
-  var isLoading = true.obs;
+  final products = <Product>[].obs;
+  final filteredProducts = <Product>[].obs;
+  final bestSellerProducts = <Product>[].obs;
+  final sellersLastWeekProducts = <Product>[].obs;
+  final totalPendapatan = <Product>[].obs;
+  final categories = <String>[].obs;
+  final selectedCategory = "Semua".obs;
+  final isLoading = true.obs;
 
   @override
   void onInit() {
@@ -17,50 +23,118 @@ class MenuController extends GetxController {
     super.onInit();
   }
 
+  final apiService = ApiService();
+
   /// 🔄 Ambil semua produk dari API
   Future<void> fetchProducts() async {
     try {
       isLoading(true);
-      final response = await http.get(
-        Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products"),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
+      final response = await apiService.dio.get('/api/products',
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          ));
+
+      print("URL dipanggil: ${response.realUri}");
+      print("Status Code: ${response.statusCode}");
+      print("Response Data: ${response.data}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseData = response.data;
 
-        if (data is List) {
-          final loadedProducts = data.map<Product>((item) => Product.fromJson(item)).toList();
+        if (responseData is Map && responseData.containsKey('data')) {
+          final List<dynamic> rawProducts = responseData['data'];
+          final loadedProducts = rawProducts
+              .map<Product>((item) => Product.fromJson(item))
+              .toList();
 
           if (!isClosed) {
             products.value = loadedProducts;
-            categories.value = ["Semua"] + products.map((p) => p.category).toSet().toList();
+            categories.value = ["Semua"] +
+                products
+                    .map((p) => p.categoryName ?? "Tidak diketahui")
+                    .toSet()
+                    .toList();
+
             selectedCategory.value = "Semua";
             filterProducts();
-            print("✅ Produk dimuat: ${products.length} item.");
           }
         } else {
-          print("⚠️ Data yang diterima bukan List.");
+          print("⚠️ Format respons tidak sesuai (tidak ada field 'data').");
         }
       } else {
         print("❌ Gagal mengambil data. Status Code: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Error fetching products: $e");
+      print("Error fetching products: $e");
     } finally {
       isLoading(false);
     }
   }
 
-  /// 🔁 Filter produk berdasarkan kategori aktif
-  void filterProducts() {
-    if (selectedCategory.value == "Semua") {
+  Future<bool> tambahProduk({
+    required String name,
+    required double price,
+    required int stock,
+    required File imageFile,
+    required int product_category_id,
+  }) async {
+    try {
+      isLoading(true);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      String fileName = basename(imageFile.path);
+      FormData formData = FormData.fromMap({
+        "name": name,
+        "product_category_id": product_category_id,
+        "price": price,
+        "stock": stock,
+        "image":
+            await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      });
+
+      final response = await apiService.dio.post(
+        '/api/products',
+        data: formData,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+            "Content-Type": "multipart/form-data",
+          },
+        ),
+      );
+      print('Response Status: ${response.statusCode}');
+      print(response.data);
+      return response.statusCode == 201;
+    } catch (e) {
+      if (e is DioError) {
+        print("Dio Error: ${e.response?.data ?? e.message}");
+      } else {
+        print("General Error: $e");
+      }
+      return false;
+    }
+  }
+
+  void filterProducts({String query = ""}) {
+    if (selectedCategory.value == "Semua" && query.isEmpty) {
       filteredProducts.assignAll(products);
     } else {
       filteredProducts.assignAll(
-        products.where((p) => p.category == selectedCategory.value).toList(),
+        products.where((p) {
+          final matchCategory = selectedCategory.value == "Semua" ||
+              p.categoryName == selectedCategory.value;
+          final matchName = query.isEmpty ||
+              p.name.toLowerCase().contains(query.toLowerCase());
+          return matchCategory && matchName;
+        }).toList(),
       );
     }
   }
@@ -70,37 +144,96 @@ class MenuController extends GetxController {
     if (query.isEmpty) {
       filterProducts();
     } else {
-      filteredProducts.assignAll(
-        products.where((product) =>
-            product.name.toLowerCase().contains(query.toLowerCase()) ||
-            product.category.toLowerCase().contains(query.toLowerCase())).toList(),
-      );
+      filteredProducts.assignAll(products.where((product) =>
+          product.name.toLowerCase().contains(query.toLowerCase()) ||
+          (product.categoryName ?? '')
+              .toLowerCase()
+              .contains(query.toLowerCase())));
     }
   }
 
-  /// ❌ Hapus produk dari API & update lokal
-  Future<void> deleteProduct(int id) async {
+  // Best Seller Products
+  Future<void> fetchBestSellers() async {
     try {
       isLoading(true);
-
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      if (token == null) {
-        print("⚠️ Token tidak ditemukan. User mungkin belum login.");
-        return;
-      }
+      final response = await apiService.dio.get(
+        '/api/products/best-sellers',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
 
-      final response = await http.delete(
-        Uri.parse("https://rumahseduh.shbhosting999.my.id/api/products/$id"),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+      if (response.statusCode == 200 && response.data['data'] != null) {
+        final List<dynamic> rawProducts = response.data['data'];
+        final loadedProducts =
+            rawProducts.map<Product>((item) => Product.fromJson(item)).toList();
+
+        bestSellerProducts.assignAll(loadedProducts);
+      } else {
+        print("Tidak ada data best seller");
+        bestSellerProducts.clear();
+      }
+    } catch (e) {
+      print("Error fetch best sellers: $e");
+      bestSellerProducts.clear();
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // penjualan bulan lalu
+  Future<void> fetchsellersLastWeekProducts() async {
+    try {
+      isLoading(true);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await apiService.dio.get(
+        '/api/products/sellers-lastweek',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 && response.data['data'] != null) {
+        final List<dynamic> raw = response.data['data'] as List<dynamic>;
+        final loaded = raw.map((e) {
+          return Product.fromJson(Map<String, dynamic>.from(e as Map));
+        }).toList();
+        sellersLastWeekProducts.assignAll(loaded);
+      } else {
+        sellersLastWeekProducts.clear();
+      }
+    } catch (e, st) {
+      print("fetchBestSellers error: $e\n$st");
+      sellersLastWeekProducts.clear();
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // Hapus produk dari API & update lokal
+  Future<void> deleteProduct(int id) async {
+    try {
+      isLoading(true);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await apiService.dio.delete(
+        '/api/products/$id',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
       );
 
       print("DELETE Status: ${response.statusCode}");
-      print("DELETE Body: ${response.body}");
+      print("DELETE Body: ${response.data}");
 
       if (response.statusCode == 200) {
         products.removeWhere((product) => product.id == id);
@@ -122,9 +255,9 @@ class MenuController extends GetxController {
     if (index != -1) {
       products[index] = updatedProduct;
       filterProducts();
-      print("✅ Produk berhasil diperbarui di memori");
+      print("Produk berhasil diperbarui di memori");
     } else {
-      print("⚠️ Produk dengan ID ${updatedProduct.id} tidak ditemukan");
+      print("Produk dengan ID ${updatedProduct.id} tidak ditemukan");
     }
   }
 
