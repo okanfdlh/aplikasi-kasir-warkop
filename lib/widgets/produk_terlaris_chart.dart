@@ -38,7 +38,8 @@ class ProdukTerlarisChart extends StatelessWidget {
     // Ambil 5 produk terlaris saja
     final topData = data.take(5).toList();
 
-    final maxValue = topData.map((e) => e.totalTerjual).reduce((a, b) => a > b ? a : b);
+    final maxValue =
+        topData.map((e) => e.totalTerjual).reduce((a, b) => a > b ? a : b);
 
     final barGroups = topData.asMap().entries.map((entry) {
       final index = entry.key;

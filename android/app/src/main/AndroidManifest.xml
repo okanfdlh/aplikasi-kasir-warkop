@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.coba1">
+    package="com.aplikasi.warkop">
 
     <!-- Tambahkan permission untuk foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="rumah_seduh"
+        android:label="Rumah Seduh 2"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

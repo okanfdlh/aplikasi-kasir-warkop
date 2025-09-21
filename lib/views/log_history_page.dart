@@ -1,7 +1,9 @@
+import 'package:coffeeorder/controllers/order_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../services/order_service.dart';
 
 class LogHistoryPage extends StatefulWidget {
   @override
@@ -9,6 +11,7 @@ class LogHistoryPage extends StatefulWidget {
 }
 
 class _LogHistoryPageState extends State<LogHistoryPage> {
+  final OrderController orderController = Get.put(OrderController());
   List<dynamic> allOrders = [];
   Map<String, List<dynamic>> groupedByDate = {};
   String? selectedYear;
@@ -19,32 +22,15 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null).then((_) {
-      loadOrders();
+      orderController.fetchOrders();
     });
   }
 
-  Future<void> loadOrders() async {
-    try {
-      final data = await OrderService.fetchOrders();
-      final selesaiOrders = data.where((o) => o['status'] == 'Selesai').toList();
-      final Map<String, List<dynamic>> grouped = {};
-
-      for (var order in selesaiOrders) {
-        final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.parse(order['created_at']));
-        grouped.putIfAbsent(dateStr, () => []).add(order);
-      }
-
-      setState(() {
-        allOrders = selesaiOrders;
-        groupedByDate = grouped;
-      });
-    } catch (e) {
-      print('Error load history: $e');
-    }
-  }
-
-  List<String> getAvailableYears() =>
-      groupedByDate.keys.map((d) => DateTime.parse(d).year.toString()).toSet().toList()..sort((a, b) => b.compareTo(a));
+  List<String> getAvailableYears() => groupedByDate.keys
+      .map((d) => DateTime.parse(d).year.toString())
+      .toSet()
+      .toList()
+    ..sort((a, b) => b.compareTo(a));
 
   List<String> getAvailableMonths() {
     if (selectedYear == null) return [];
@@ -101,7 +87,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   hint: "Bulan",
                   value: selectedMonth,
                   items: getAvailableMonths().map((m) => m).toList(),
-                  displayText: (val) => DateFormat.MMMM('id_ID').format(DateTime(0, int.parse(val))),
+                  displayText: (val) => DateFormat.MMMM('id_ID')
+                      .format(DateTime(0, int.parse(val))),
                   onChanged: (val) => setState(() {
                     selectedMonth = val;
                     selectedDay = null;
@@ -112,7 +99,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   hint: "Tanggal",
                   value: selectedDay,
                   items: getAvailableDays(),
-                  displayText: (val) => DateFormat('dd MMM yyyy', 'id_ID').format(DateTime.parse(val)),
+                  displayText: (val) => DateFormat('dd MMM yyyy', 'id_ID')
+                      .format(DateTime.parse(val)),
                   onChanged: (val) => setState(() => selectedDay = val),
                 ),
               ],
@@ -133,10 +121,16 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                         borderRadius: BorderRadius.circular(12),
                         elevation: 2,
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          title: Text(order['customer_name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text("Meja: ${order['customer_meja']} | Total: Rp${order['total_price']}", style: TextStyle(color: Colors.grey.shade700)),
-                          trailing: const Icon(Icons.receipt_long, color: Colors.green),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          title: Text(order['customer_name'],
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                              "Meja: ${order['customer_meja']} | Total: Rp${order['total_price']}",
+                              style: TextStyle(color: Colors.grey.shade700)),
+                          trailing: const Icon(Icons.receipt_long,
+                              color: Colors.green),
                           onTap: () => _showDetail(order),
                         ),
                       );
@@ -187,12 +181,14 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         title: Row(
           children: [
             Icon(Icons.receipt_long_rounded, color: Colors.green.shade700),
             const SizedBox(width: 8),
-            const Text("Detail Pesanan", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Detail Pesanan",
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: SingleChildScrollView(
@@ -200,12 +196,16 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildInfoRow(Icons.person, "Nama", order['customer_name']),
-              _buildInfoRow(Icons.table_restaurant, "Meja", order['customer_meja']),
+              _buildInfoRow(
+                  Icons.table_restaurant, "Meja", order['customer_meja']),
               _buildInfoRow(Icons.phone, "No HP", order['customer_phone']),
-              _buildInfoRow(Icons.attach_money, "Total", "Rp${order['total_price']}"),
-              _buildInfoRow(Icons.payment, "Pembayaran", order['payment_status']),
+              _buildInfoRow(
+                  Icons.attach_money, "Total", "Rp${order['total_price']}"),
+              _buildInfoRow(
+                  Icons.payment, "Pembayaran", order['payment_status']),
               const SizedBox(height: 16),
-              const Text("🧾 Item Pesanan:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("🧾 Item Pesanan:",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               ...order['order_items'].map<Widget>((item) {
                 return Container(
@@ -219,8 +219,10 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(item['product_name'], style: const TextStyle(fontSize: 14)),
-                      Text("${item['quantity']}x", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(item['product_name'],
+                          style: const TextStyle(fontSize: 14)),
+                      Text("${item['quantity']}x",
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 );
@@ -236,7 +238,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
             style: TextButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: Colors.green.shade700,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
           ),
@@ -257,7 +260,8 @@ class _LogHistoryPageState extends State<LogHistoryPage> {
             child: RichText(
               text: TextSpan(
                 text: "$label: ",
-                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    color: Colors.black87, fontWeight: FontWeight.w600),
                 children: [
                   TextSpan(
                     text: value.isEmpty ? "-" : value,
